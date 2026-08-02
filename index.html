@@ -5,123 +5,215 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>충주대원고등학교 3D 배치도</title>
 <style>
-  html, body { margin:0; height:100%; overflow:hidden; background:#aecbe0;
-    font-family:"Malgun Gothic","Apple SD Gothic Neo",sans-serif; }
+  :root {
+    --bg:#f2f5fa;  --ink:#0f172a;  --ink2:#334155;  --muted:#94a3b8;
+    --muted2:#64748b;  --line:#e7edf5;  --brand:#2563eb;  --soft:#f1f5f9;
+  }
+  * { box-sizing:border-box; }
+  html, body { margin:0; height:100%; overflow:hidden; background:var(--bg); color:var(--ink);
+    font-family:"Pretendard","Pretendard Variable",-apple-system,BlinkMacSystemFont,
+      "Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif;
+    -webkit-font-smoothing:antialiased; }
   canvas { display:block; }
 
-  .panel { position:absolute; z-index:10; background:rgba(255,255,255,.9);
-    border-radius:10px; box-shadow:0 3px 12px rgba(0,0,0,.18); color:#1d1d1f; }
+  /* ── floating control card ─────────────────────────────────── */
+  #ui { position:absolute; z-index:20; top:24px; left:24px; width:314px;
+    max-height:calc(100vh - 48px); overflow-y:auto; overscroll-behavior:contain;
+    padding:22px 22px 18px; border-radius:20px; background:#fff;
+    box-shadow:0 18px 48px rgba(15,23,42,.12), 0 2px 6px rgba(15,23,42,.05); }
+  #ui::-webkit-scrollbar { width:6px; }
+  #ui::-webkit-scrollbar-thumb { background:#dde5ef; border-radius:3px; }
 
-  #title { top:12px; left:12px; padding:12px 16px; max-width:270px; }
-  #title h1 { margin:0 0 4px; font-size:16px; }
-  #title p { margin:0; font-size:11.5px; line-height:1.6; color:#555; }
+  .eyebrow { font-size:12px; font-weight:800; color:var(--brand); letter-spacing:.2px; }
+  #ui h1 { margin:6px 0 6px; font-size:25px; font-weight:800; letter-spacing:-.6px; }
+  .sub { margin:0; font-size:12.5px; color:var(--muted); line-height:1.55; }
 
-  #ctrl { top:12px; right:12px; padding:10px 14px; width:180px; font-size:12px; }
-  #ctrl .sec + .sec { margin-top:6px; border-top:1px solid #ececf0; padding-top:6px; }
-  #ctrl h2 { display:flex; justify-content:space-between; align-items:center;
-    margin:0; padding:4px 0; font-size:11.5px; letter-spacing:.4px; color:#666;
-    text-transform:uppercase; font-weight:700; cursor:pointer; user-select:none; }
-  #ctrl h2:hover { color:#2f6fd0; }
-  #ctrl .chev { font-size:9px; transition:transform .15s; }
-  #ctrl .sec.collapsed .chev { transform:rotate(-90deg); }
-  #ctrl .sec.collapsed .body { display:none; }
-  #ctrl .body { padding:4px 0 6px; }
-  #ctrl button { display:block; width:100%; margin:3px 0; padding:6px 8px;
-    font:inherit; text-align:left; border:1px solid #d5d5da; border-radius:6px;
-    background:#fff; cursor:pointer; transition:.12s; }
-  #ctrl button:hover { background:#eef3f9; border-color:#9db6d0; }
-  #ctrl button.off { opacity:.4; }
-  #ctrl label { display:flex; align-items:center; gap:6px; margin:5px 0; cursor:pointer; }
+  .sect { margin-top:20px; }
+  .cap { display:flex; justify-content:space-between; align-items:center;
+    margin-bottom:10px; font-size:13px; font-weight:700; color:var(--muted2); }
+  .cap.click { cursor:pointer; user-select:none; }
+  .cap.click:hover { color:var(--brand); }
+  .cap .chev { font-size:10px; color:var(--muted); transition:transform .18s; }
+  .sect.closed .chev { transform:rotate(-90deg); }
+  .sect.closed .body { display:none; }
+  .help { margin:10px 2px 0; font-size:11.5px; line-height:1.6; color:var(--muted); }
 
-  #nav { top:12px; left:12px; padding:12px 16px; width:262px; font-size:12px; }
-  #nav h1 { margin:0 0 2px; font-size:15px; }
-  #nav .sub { margin:0 0 10px; font-size:10.5px; color:#666; line-height:1.5; }
-  #nav .row { display:flex; align-items:center; gap:6px; margin:5px 0; }
-  #nav .dot { width:9px; height:9px; border-radius:50%; flex:0 0 auto; }
-  #nav input[type=text] { flex:1; min-width:0; padding:6px 8px; font:inherit;
-    border:1px solid #d0d0d6; border-radius:6px; background:#fff; }
-  #nav input[type=text]:focus { outline:none; border-color:#5b8fd0;
-    box-shadow:0 0 0 3px rgba(91,143,208,.18); }
-  #nav .acts { display:flex; gap:6px; margin-top:9px; }
-  #nav .acts button { flex:1; padding:7px 8px; font:inherit; font-weight:700;
-    border-radius:6px; cursor:pointer; border:1px solid #d0d0d6; background:#fff; }
-  #nav .acts button.go { background:#2f6fd0; border-color:#2f6fd0; color:#fff; }
-  #nav .acts button:hover { filter:brightness(.95); }
-  #swap { padding:4px 7px; font:inherit; cursor:pointer; border:1px solid #d0d0d6;
-    border-radius:6px; background:#fff; line-height:1; }
-  #steps { margin-top:10px; max-height:230px; overflow-y:auto; font-size:11px;
-    line-height:1.55; border-top:1px solid #e6e6ea; padding-top:8px; display:none; }
-  #steps .sum { font-weight:700; margin-bottom:6px; color:#2f6fd0; }
-  #steps ol { margin:0; padding-left:16px; }
-  #steps li { margin:3px 0; }
-  #steps .warn { color:#c92a2a; }
+  /* floor picker */
+  .floor { display:flex; justify-content:space-between; align-items:center;
+    width:100%; height:46px; margin-bottom:8px; padding:0 16px; font:inherit;
+    border:1px solid var(--line); border-radius:13px; background:#fff;
+    cursor:pointer; transition:.15s; }
+  .floor:hover { border-color:#c6d8f2; background:#fafcff; }
+  .floor .nm { font-size:15px; font-weight:600; color:var(--ink2); }
+  .floor .ct { font-size:12.5px; color:var(--muted); }
+  .floor.on { background:var(--brand); border-color:var(--brand);
+    box-shadow:0 8px 18px rgba(37,99,235,.26); }
+  .floor.on .nm { color:#fff; font-weight:700; }
+  .floor.on .ct { color:rgba(255,255,255,.78); }
 
-  #legend { bottom:12px; left:12px; padding:10px 14px; font-size:11.5px; line-height:1.85; }
-  .sw { display:inline-block; width:11px; height:11px; margin-right:7px;
-    border-radius:2px; vertical-align:-1px; border:1px solid rgba(0,0,0,.15); }
+  /* route finder */
+  .row { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+  .dot { width:9px; height:9px; border-radius:50%; flex:0 0 auto; }
+  #ui input[type=text] { flex:1; min-width:0; height:40px; padding:0 12px;
+    font:inherit; font-size:13.5px; color:var(--ink); background:#fbfcfe;
+    border:1px solid var(--line); border-radius:11px; }
+  #ui input[type=text]::placeholder { color:#a9b6c8; }
+  #ui input[type=text]:focus { outline:none; background:#fff; border-color:#93b4ea;
+    box-shadow:0 0 0 4px rgba(37,99,235,.10); }
+  #swap { width:40px; height:40px; flex:0 0 auto; font:inherit; font-size:14px;
+    color:var(--muted2); background:#fff; border:1px solid var(--line);
+    border-radius:11px; cursor:pointer; }
+  #swap:hover { color:var(--brand); border-color:#c6d8f2; }
 
-  .lbl { pointer-events:none; white-space:nowrap; color:#15181c;
-    text-shadow:0 1px 2px rgba(255,255,255,.9), 0 0 3px rgba(255,255,255,.8); }
-  .lbl.bldg { font-size:14px; font-weight:800; padding:3px 9px; border-radius:5px;
-    background:rgba(255,255,255,.85); box-shadow:0 1px 4px rgba(0,0,0,.2); }
-  .lbl.room { font-size:9px; font-weight:600; }
-  .lbl.site { font-size:11px; font-weight:700; color:#3a4652; }
+  .acts { display:flex; gap:8px; margin-top:10px; }
+  .btn { flex:1; height:42px; font:inherit; font-size:14px; font-weight:700;
+    color:var(--ink2); background:#fff; border:1px solid var(--line);
+    border-radius:12px; cursor:pointer; transition:.15s; }
+  .btn:hover { background:#f7fafe; border-color:#c6d8f2; }
+  .btn.pri { color:#fff; background:var(--brand); border-color:var(--brand);
+    box-shadow:0 8px 18px rgba(37,99,235,.26); }
+  .btn.pri:hover { background:#1d55d0; }
+
+  /* switches */
+  .opt { display:flex; align-items:center; justify-content:space-between;
+    padding:7px 0; font-size:13px; color:var(--ink2); cursor:pointer; }
+  .opt input { display:none; }
+  .opt .sw { position:relative; width:36px; height:20px; flex:0 0 auto;
+    border-radius:99px; background:#dde5ef; transition:.18s; }
+  .opt .sw::after { content:""; position:absolute; top:2px; left:2px;
+    width:16px; height:16px; border-radius:50%; background:#fff;
+    box-shadow:0 1px 3px rgba(15,23,42,.28); transition:.18s; }
+  .opt input:checked + .sw { background:var(--brand); }
+  .opt input:checked + .sw::after { transform:translateX(16px); }
+
+  /* building chips */
+  .chips { display:flex; flex-wrap:wrap; gap:7px; }
+  .chip { padding:7px 12px; font:inherit; font-size:12.5px; font-weight:600;
+    color:var(--ink2); background:#fff; border:1px solid var(--line);
+    border-radius:99px; cursor:pointer; transition:.15s; }
+  .chip:hover { color:var(--brand); background:#eff5ff; border-color:#bcd3f7; }
+
+  /* legend */
+  .legend { display:grid; grid-template-columns:1fr 1fr; gap:10px 10px; }
+  .lg { display:flex; align-items:center; gap:8px; font-size:12.5px; color:var(--muted2); }
+  .lg i { width:14px; height:14px; flex:0 0 auto; border-radius:4px;
+    border:1px solid rgba(15,23,42,.08); }
+
+  /* picked-facility box */
+  #hint { margin-top:18px; padding:14px 15px; border-radius:13px; background:var(--soft);
+    font-size:12.5px; line-height:1.55; color:var(--muted2); }
+  #hint .nm { margin-bottom:3px; font-size:15px; font-weight:800; color:var(--ink); }
+  #hint .meta { font-size:12px; color:var(--muted); }
+  #hint .pa { display:flex; gap:7px; margin-top:11px; }
+  #hint .pa button { flex:1; height:34px; font:inherit; font-size:12.5px; font-weight:700;
+    color:var(--ink2); background:#fff; border:1px solid #dde5ef; border-radius:9px;
+    cursor:pointer; }
+  #hint .pa button:hover { color:var(--brand); border-color:#bcd3f7; }
+
+  /* route steps */
+  #steps { display:none; margin-top:12px; font-size:12px; line-height:1.6; color:var(--muted2); }
+  #steps .sum { margin-bottom:8px; font-size:12.5px; font-weight:700; color:var(--brand); }
+  #steps ol { margin:0; padding-left:17px; }
+  #steps li { margin:4px 0; }
+  #steps b { color:var(--ink2); }
+  #steps .warn { font-weight:600; color:#dc2626; }
+  #steps .note { margin-bottom:8px; padding:6px 9px; border-radius:8px;
+    background:#fff7ed; color:#b45309; font-size:11.5px; }
+
+  /* ── in-scene labels ───────────────────────────────────────── */
+  .lbl { pointer-events:none; white-space:nowrap; font-family:inherit; }
+  .lbl.bldg { padding:4px 10px; font-size:12px; font-weight:700; color:#1e293b;
+    background:#fff; border:1px solid #e2e8f0; border-radius:8px;
+    box-shadow:0 4px 12px rgba(15,23,42,.10); transition:.18s; }
+  .lbl.bldg.on { color:var(--brand); border-color:#bcd3f7;
+    box-shadow:0 6px 16px rgba(37,99,235,.20); }
+  .lbl.site { padding:3px 9px; font-size:11.5px; font-weight:600; color:#475569;
+    background:#fff; border:1px solid #e6ecf4; border-radius:7px;
+    box-shadow:0 3px 9px rgba(15,23,42,.07); }
+  .lbl.room { padding:2px 6px; font-size:9.5px; font-weight:600; color:#64748b;
+    background:rgba(255,255,255,.92); border:1px solid #eaeff6; border-radius:5px; }
+  .lbl.pin { padding:4px 11px; font-size:12px; font-weight:800; color:#fff;
+    border-radius:8px; box-shadow:0 6px 16px rgba(15,23,42,.22); }
+  .lbl.pin.start { background:#16a34a; }
+  .lbl.pin.end   { background:#dc2626; }
+
+  @media (max-width:640px) {
+    #ui { top:12px; left:12px; right:12px; width:auto; padding:18px;
+      max-height:52vh; border-radius:16px; }
+    #ui h1 { font-size:21px; }
+  }
 </style>
 </head>
 <body>
 
-<div id="nav" class="panel">
-  <h1>충주대원고등학교</h1>
-  <p class="sub">비상대피도 기반 3D 배치도 · 길찾기<br>
-  드래그 회전 &nbsp;|&nbsp; 휠 확대 &nbsp;|&nbsp; 우클릭 이동</p>
+<div id="ui">
+  <div class="eyebrow">충주대원고등학교</div>
+  <h1>3D 실내 지도</h1>
+  <p class="sub">드래그로 회전 · 휠로 확대/축소</p>
 
-  <div class="row">
-    <span class="dot" style="background:#22b35e"></span>
-    <input type="text" id="fromIn" list="places" placeholder="출발지 (예: 3-1)" autocomplete="off">
-  </div>
-  <div class="row">
-    <span class="dot" style="background:#e03131"></span>
-    <input type="text" id="toIn" list="places" placeholder="도착지 (예: 급식실(학생식당))" autocomplete="off">
-    <button id="swap" title="출발지·도착지 바꾸기">⇅</button>
-  </div>
-  <datalist id="places"></datalist>
-
-  <div class="acts">
-    <button class="go" id="go">길찾기</button>
-    <button id="clear">지우기</button>
-  </div>
-
-  <div id="steps"></div>
-</div>
-
-<div id="ctrl" class="panel">
-  <div class="sec">
-    <h2>층 표시 <span class="chev">▾</span></h2>
-    <div class="body"><div id="floors"></div></div>
-  </div>
-  <div class="sec">
-    <h2>건물 보기 <span class="chev">▾</span></h2>
-    <div class="body"><div id="focus"></div></div>
-  </div>
-  <div class="sec">
-    <h2>옵션 <span class="chev">▾</span></h2>
+  <div class="sect">
+    <div class="cap">본관 층 선택</div>
     <div class="body">
-      <label><input type="checkbox" id="showRooms" checked> 교실 이름</label>
-      <label><input type="checkbox" id="showSite" checked> 부지 시설</label>
-      <label><input type="checkbox" id="xray" checked> 경로 볼 때 건물 투시</label>
+      <div id="floors"></div>
+      <p class="help">층을 선택하면 나머지 층과 다른 건물은 반투명하게 표시됩니다.</p>
     </div>
   </div>
-</div>
 
-<div id="legend" class="panel">
-  <div><span class="sw" style="background:#dcd97a"></span>1학년 (본관 3층)</div>
-  <div><span class="sw" style="background:#9cbd76"></span>2학년 (본관 4층)</div>
-  <div><span class="sw" style="background:#7ba2d1"></span>3학년 (본관 2층)</div>
-  <div><span class="sw" style="background:#f2c9a8"></span>교무·행정실</div>
-  <div><span class="sw" style="background:#d9c6e8"></span>특별교실</div>
-  <div><span class="sw" style="background:#f0b3c4"></span>급식실 · 화장실</div>
-  <div><span class="sw" style="background:#a7b3c6"></span>기숙사</div>
-  <div><span class="sw" style="background:#f7f7f2"></span>계단 · 승강기</div>
+  <div class="sect" id="secNav">
+    <div class="cap click">길찾기 <span class="chev">▾</span></div>
+    <div class="body">
+      <div class="row">
+        <span class="dot" style="background:#16a34a"></span>
+        <input type="text" id="fromIn" list="places" placeholder="출발지 (예: 3-1)" autocomplete="off">
+      </div>
+      <div class="row">
+        <span class="dot" style="background:#dc2626"></span>
+        <input type="text" id="toIn" list="places" placeholder="도착지 (예: 급식실)" autocomplete="off">
+        <button id="swap" title="출발지·도착지 바꾸기">⇅</button>
+      </div>
+      <datalist id="places"></datalist>
+
+      <label class="opt"><span>기숙사 경유 허용</span>
+        <input type="checkbox" id="viaDorm"><span class="sw"></span></label>
+
+      <div class="acts">
+        <button class="btn pri" id="go">길찾기</button>
+        <button class="btn" id="clear">지우기</button>
+      </div>
+
+      <div id="steps"></div>
+    </div>
+  </div>
+
+  <div class="sect closed" id="secFocus">
+    <div class="cap click">건물 보기 <span class="chev">▾</span></div>
+    <div class="body"><div class="chips" id="focus"></div></div>
+  </div>
+
+  <div class="sect closed" id="secOpt">
+    <div class="cap click">표시 옵션 <span class="chev">▾</span></div>
+    <div class="body">
+      <label class="opt"><span>교실 이름</span>
+        <input type="checkbox" id="showRooms" checked><span class="sw"></span></label>
+      <label class="opt"><span>부지 시설</span>
+        <input type="checkbox" id="showSite" checked><span class="sw"></span></label>
+      <label class="opt"><span>경로 볼 때 건물 투시</span>
+        <input type="checkbox" id="xray" checked><span class="sw"></span></label>
+    </div>
+  </div>
+
+  <div class="sect">
+    <div class="legend">
+      <div class="lg"><i style="background:#dce8f8"></i>교실</div>
+      <div class="lg"><i style="background:#f2f7fd"></i>복도</div>
+      <div class="lg"><i style="background:#a8bcd8"></i>계단</div>
+      <div class="lg"><i style="background:#6d85ac"></i>엘리베이터</div>
+      <div class="lg"><i style="background:#c4d4ea"></i>화장실</div>
+      <div class="lg"><i style="background:#2563eb"></i>선택됨</div>
+    </div>
+  </div>
+
+  <div id="hint">시설 상자를 클릭해 보세요</div>
 </div>
 
 <script type="importmap">
@@ -138,75 +230,78 @@ import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer
 /* ══════════════════════════════════════════════════════════════════
    SCENE
    ══════════════════════════════════════════════════════════════════ */
-const scene = new THREE.Scene();
-scene.background = new THREE.Color(0xaecbe0);
-scene.fog = new THREE.Fog(0xaecbe0, 190, 460);
+const BG = 0xf2f5fa;                       // 카드 UI와 같은 밝은 회청색 배경
 
-const camera = new THREE.PerspectiveCamera(46, innerWidth / innerHeight, 0.5, 1200);
-camera.position.set(6, 92, 128);
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(BG);
+scene.fog = new THREE.Fog(BG, 260, 620);
+
+const camera = new THREE.PerspectiveCamera(42, innerWidth / innerHeight, 0.5, 1600);
+// 왼쪽 카드에 가리지 않도록 시선 중심을 서쪽으로 조금 밀어 캠퍼스를 오른쪽에 앉힌다
+camera.position.set(-10, 92, 126);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.setSize(innerWidth, innerHeight);
-renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 document.body.appendChild(renderer.domElement);
 
 const labelRenderer = new CSS2DRenderer();
 labelRenderer.setSize(innerWidth, innerHeight);
+// CSS2DRenderer 는 라벨마다 z-index 를 직접 매긴다. 컨테이너에 z-index 를 주어
+// 별도 쌓임 맥락으로 가둬야 라벨이 조작 카드 위로 튀어나오지 않는다.
 Object.assign(labelRenderer.domElement.style,
-  { position: 'absolute', top: '0', pointerEvents: 'none' });
+  { position: 'absolute', top: '0', zIndex: '1', pointerEvents: 'none' });
 document.body.appendChild(labelRenderer.domElement);
 
 // controls MUST bind to the WebGL canvas - the label layer is pointer-events:none
 const controls = new OrbitControls(camera, renderer.domElement);
-controls.target.set(6, 6, 4);
+controls.target.set(-10, 6, 4);
 controls.enableDamping = true;
 controls.dampingFactor = 0.075;
 controls.maxPolarAngle = Math.PI * 0.487;
 controls.minDistance = 22;
-controls.maxDistance = 300;
+controls.maxDistance = 340;
 
-scene.add(new THREE.AmbientLight(0xffffff, 0.62));
-scene.add(new THREE.HemisphereLight(0xcfe4f2, 0x6f8a56, 0.45));
-const sun = new THREE.DirectionalLight(0xfff2d8, 1.05);
-sun.position.set(70, 120, 55);
-sun.castShadow = true;
-sun.shadow.mapSize.set(2048, 2048);
-Object.assign(sun.shadow.camera,
-  { left: -130, right: 130, top: 130, bottom: -130, near: 1, far: 320 });
-sun.shadow.camera.updateProjectionMatrix();
-sun.shadow.bias = -0.0005;
-scene.add(sun);
+/* 그림자 없이 부드러운 확산광만 쓴다 — 종이에 인쇄한 도면처럼 밝고 납작하게
+   보여야 하얀 상자들의 경계선(EdgesGeometry)이 디자인의 주인공이 된다. */
+scene.add(new THREE.AmbientLight(0xffffff, 1.42));
+scene.add(new THREE.HemisphereLight(0xffffff, 0xdde6f2, 0.80));
+const keyLight = new THREE.DirectionalLight(0xffffff, 0.92);
+keyLight.position.set(64, 130, 74);
+scene.add(keyLight);
+const fill = new THREE.DirectionalLight(0xe8eefa, 0.42);
+fill.position.set(-72, 78, -64);
+scene.add(fill);
 
 /* ══════════════════════════════════════════════════════════════════
-   PALETTE  — mirrors the cell colours used on the evacuation map
+   PALETTE
+   비상대피도의 알록달록한 원색 대신, 범례에 있는 다섯 가지 톤으로만 칠한다.
+   방의 "종류"를 색으로 나누되 채도를 거의 없애서 흰 종이 모형처럼 보이게 하고,
+   강조(선택·경로)에만 브랜드 블루를 남겨 시선이 한 곳으로 모이게 한다.
+   기존 셀 정의(C.g1, C.office …)를 그대로 쓰기 위해 키는 유지하고 값만 묶는다.
    ══════════════════════════════════════════════════════════════════ */
+const TONE = {
+  room:   0xdce8f8,   // 교실 · 일반 실 (연한 파랑)
+  corr:   0xf2f7fd,   // 복도 · 현관 (거의 흰색)
+  stair:  0xa8bcd8,   // 계단 (중간 슬레이트)
+  elev:   0x6d85ac,   // 엘리베이터 (짙은 남색)
+  wc:     0xc4d4ea,   // 화장실
+  pad:    0xfbfcfe,   // 부지 시설 슬래브
+  sel:    0x2563eb,   // 선택됨
+};
+const EDGE    = 0x9db4d4;   // 상자 외곽선
+const EDGE_OP = 0.5;
+
 const C = {
-  g1:      0xdcd97a,  // 1학년 교실 (노랑)
-  g2:      0x9cbd76,  // 2학년 교실 (초록)
-  g3:      0x7ba2d1,  // 3학년 교실 (파랑)
-  office:  0xf2c9a8,  // 교무·행정 (살구)
-  lab:     0xe8d5b8,  // 연구실
-  special: 0xd9c6e8,  // 특별교실 (연보라)
-  wc:      0xf0b3c4,  // 화장실 (분홍)
-  stair:   0xf7f7f2,  // 계단 (흰색)
-  elev:    0xe4e4dc,  // 승강기
-  entry:   0xa9d6e8,  // 현관 (하늘)
-  food:    0xf0b3c4,  // 급식실
-  dorm:    0xa7b3c6,  // 기숙사
-  study:   0xc3cde0,  // 정독실
-  library: 0xd4bE93,  // 도서관
-  store:   0xc9c0b0,  // 창고
-  gym:     0xa9d8e4,  // 체육관
-  corr:    0xd8d3c8,  // 복도
-  agora:   0xf0e4a4,  // 아고라
-  // 담곡관 전용 — 지도에서 이 건물만 다른 색조로 칠해져 있다
-  dgHall:  0xa8c6cf,  // 담곡관 홀 (청회색)
-  dgRoom:  0xe8ddd0,  // 예체능교육실 (미색)
-  dgWcF:   0xa8709c,  // 화장실(여) (자주)
-  dgWc:    0xe8c4a8,  // 화장실 (살구)
-  dgWhite: 0xfafaf5,  // 현관 · 악기실
+  g1:      TONE.room,  g2:      TONE.room,  g3:      TONE.room,
+  office:  TONE.room,  lab:     TONE.room,  special: TONE.room,
+  wc:      TONE.wc,    stair:   TONE.stair, elev:    TONE.elev,
+  entry:   TONE.corr,  food:    TONE.room,  dorm:    TONE.room,
+  study:   TONE.room,  library: TONE.room,  store:   TONE.corr,
+  gym:     TONE.room,  corr:    TONE.corr,  agora:   TONE.corr,
+  // 담곡관 — 원본 지도에서만 다른 색조였던 칸들도 같은 규칙으로 흡수한다
+  dgHall:  TONE.room,  dgRoom:  TONE.room,  dgWcF:   TONE.wc,
+  dgWc:    TONE.wc,    dgWhite: TONE.corr,
 };
 
 const FLOOR_H = 4.3;                    // one storey, world units
@@ -215,10 +310,32 @@ const GAP     = 0.16;                   // gap between adjacent room cells
 /* ══════════════════════════════════════════════════════════════════
    BUILDERS
    ══════════════════════════════════════════════════════════════════ */
-const floorGroups = [[], [], [], []];   // meshes+labels indexed by storey (0=1층)
+/* 모든 상자·외곽선·라벨을 한 배열에 등록해 두고, 층 강조·투시·선택을 그때그때
+   다시 계산해 한 번에 반영한다(refresh). 여러 곳에서 opacity 를 각자 만지면
+   서로 덮어써서 상태가 어긋나기 때문에 표현은 이 한 곳으로 모은다. */
+const parts       = [];   // { o, type:'mesh'|'edge'|'label', key, floor, base, tone }
 const roomLabels  = [];
 const siteObjects = [];
+const pickables   = [];   // 클릭으로 고를 수 있는 방 상자
+const partOf      = new WeakMap();
+const bldgLabels  = {};   // 건물키 -> 건물 이름표 element
 const focusTargets = {};
+
+function reg(o, type, key, floor, base, tone) {
+  const p = { o, type, key, floor, base, tone, sel: false };
+  parts.push(p);
+  return p;
+}
+
+/* 층 강조·투시로 흐려질 수 있는 표면은 처음부터 transparent 로 만든다.
+   three.js 는 `transparent` 를 나중에 켜면 셰이더를 다시 컴파일해야 반영되는데
+   (플래그만 바꾸면 계속 불투명하게 그려진다), 수백 개를 한꺼번에 다시 컴파일하면
+   전환할 때마다 화면이 멈춘다. opacity 만 오르내리게 두면 그럴 일이 없다. */
+function surface(color, roughness = 0.95) {
+  return new THREE.MeshStandardMaterial({
+    color, roughness, metalness: 0, transparent: true, opacity: 1,
+  });
+}
 
 /* Every room cell also becomes a node in the walking graph used by 길찾기.
    `along` is the cell's position on its floor bar, so cells can be chained in
@@ -280,26 +397,23 @@ function makeBuilding(cfg) {
       const w = axis === 'x' ? along : depth;
       const d = axis === 'x' ? depth : along;
 
+      const tone = cell.c ?? C.office;
       const mesh = new THREE.Mesh(
-        new THREE.BoxGeometry(w, FLOOR_H - GAP, d),
-        new THREE.MeshStandardMaterial({
-          color: cell.c ?? C.office, roughness: 0.82, metalness: 0.03,
-        })
+        new THREE.BoxGeometry(w, FLOOR_H - GAP, d), surface(tone)
       );
       const px = axis === 'x' ? cell.centre + shift : 0;
       const pz = axis === 'x' ? 0 : cell.centre + shift;
       mesh.position.set(px, y + (FLOOR_H - GAP) / 2, pz);
-      mesh.castShadow = mesh.receiveShadow = true;
       root.add(mesh);
-      floorGroups[fi].push(mesh);
+      const part = reg(mesh, 'mesh', key, fi, 1, tone);
 
       const outline = new THREE.LineSegments(
         new THREE.EdgesGeometry(mesh.geometry),
-        new THREE.LineBasicMaterial({ color: 0x33383d, transparent: true, opacity: 0.22 })
+        new THREE.LineBasicMaterial({ color: EDGE, transparent: true, opacity: EDGE_OP })
       );
       outline.position.copy(mesh.position);
       root.add(outline);
-      floorGroups[fi].push(outline);
+      reg(outline, 'edge', key, fi, EDGE_OP);
 
       // room caption, floated just outside the sunny (south / east) face
       const cap = makeLabel(cell.n, 'room');
@@ -309,10 +423,10 @@ function makeBuilding(cfg) {
         axis === 'x' ? lf * (depth / 2 + 0.6) : pz
       );
       root.add(cap);
-      floorGroups[fi].push(cap);
+      reg(cap, 'label', key, fi, 1);
       roomLabels.push(cap);
 
-      if (key) navCells.push({
+      const node = key ? {
         id: `${key}#${fi}#${ci}`,
         room: cell.n,
         bldg: cfg.navName ?? name ?? key,
@@ -320,37 +434,50 @@ function makeBuilding(cfg) {
         along: cell.centre + shift,
         kind: classify(cell.n),
         pos: new THREE.Vector3(ox + px, y + 1.6, oz + pz),
-      });
+      } : null;
+      if (node) navCells.push(node);
+
+      mesh.userData.node = node;
+      partOf.set(mesh, part);
+      pickables.push(mesh);
     });
   });
 
   if (name) {
-    const tag = makeLabel(name, 'bldg');
+    // 화면에는 번호를 떼고 이름만 — 번호는 길찾기 목록 정렬에만 쓰인다
+    const tag = makeLabel(name.replace(/^\d+\.\s*/, ''), 'bldg');
     tag.position.set(0, labelY ?? floors.length * FLOOR_H + 3.2, 0);
     root.add(tag);
+    // 담곡관처럼 한 건물을 여러 블록으로 나눠 지은 곳도 이름표는 하나이므로,
+    // 블록 키가 아니라 길찾기에서 쓰는 건물 이름으로 등록한다.
+    bldgLabels[cfg.navName ?? name] = tag.element;
   }
   focusTargets[name] = new THREE.Vector3(ox, floors.length * FLOOR_H / 2, oz);
   return root;
 }
 
-/** A corridor / bridge floating at a fixed storey band. */
-function bridge({ at: [x, z], w, d, floor, storeys = 1, color = C.corr, name }) {
+/** A corridor / bridge floating at a fixed storey band.
+ *  `labelZ` 는 이름표만 통로 축을 따라 옮긴다 — 통로 한가운데가 다른 건물 뒤로
+ *  숨어 이름표끼리 겹칠 때 쓴다. */
+function bridge({ at: [x, z], w, d, floor, storeys = 1, color = C.corr, name, labelZ = 0 }) {
   const h = storeys * FLOOR_H - GAP;
   const yBase = floor * FLOOR_H;          // `floor` may be fractional (e.g. 2.5층)
-  const mesh = new THREE.Mesh(
-    new THREE.BoxGeometry(w, h, d),
-    new THREE.MeshStandardMaterial({ color, roughness: 0.85 })
-  );
+  const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), surface(color));
   mesh.position.set(x, yBase + h / 2, z);
-  mesh.castShadow = mesh.receiveShadow = true;
   scene.add(mesh);
+  reg(mesh, 'mesh', 'link', floor, 1, color);
   const edge = new THREE.LineSegments(
     new THREE.EdgesGeometry(mesh.geometry),
-    new THREE.LineBasicMaterial({ color: 0x33383d, transparent: true, opacity: 0.22 })
+    new THREE.LineBasicMaterial({ color: EDGE, transparent: true, opacity: EDGE_OP })
   );
   edge.position.copy(mesh.position);
   scene.add(edge);
-  if (name) { const t = makeLabel(name, 'site'); t.position.set(x, yBase + h + 1.2, z); scene.add(t); }
+  reg(edge, 'edge', 'link', floor, EDGE_OP);
+  if (name) {
+    const t = makeLabel(name, 'site');
+    t.position.set(x, yBase + h + 1.2, z + labelZ);
+    scene.add(t);
+  }
   return mesh;
 }
 
@@ -358,18 +485,16 @@ function bridge({ at: [x, z], w, d, floor, storeys = 1, color = C.corr, name }) 
 function ramp({ x, w, from: [z1, y1], to: [z2, y2], thick = 2.3, color = C.corr, name }) {
   const dz = z2 - z1, dy = y2 - y1;
   const len = Math.hypot(dz, dy);
-  const mesh = new THREE.Mesh(
-    new THREE.BoxGeometry(w, thick, len),
-    new THREE.MeshStandardMaterial({ color, roughness: 0.85 })
-  );
+  const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, thick, len), surface(color));
   mesh.rotation.x = -Math.atan2(dy, dz);
   mesh.position.set(x, (y1 + y2) / 2, (z1 + z2) / 2);
-  mesh.castShadow = mesh.receiveShadow = true;
   scene.add(mesh);
+  reg(mesh, 'mesh', 'link', 2, 1, color);
   const o = new THREE.LineSegments(new THREE.EdgesGeometry(mesh.geometry),
-    new THREE.LineBasicMaterial({ color: 0x33383d, transparent: true, opacity: 0.22 }));
+    new THREE.LineBasicMaterial({ color: EDGE, transparent: true, opacity: EDGE_OP }));
   o.position.copy(mesh.position); o.rotation.copy(mesh.rotation);
   scene.add(o);
+  reg(o, 'edge', 'link', 2, EDGE_OP);
   if (name) { const t = makeLabel(name, 'site'); t.position.set(x, Math.max(y1, y2) + 2, (z1 + z2) / 2); scene.add(t); }
   return mesh;
 }
@@ -391,20 +516,18 @@ function annex({ at: [x, z], axis, len, depth, floor, cells, labelFace = 1,
     const px = axis === 'x' ? x + cell.centre : x;
     const pz = axis === 'x' ? z : z + cell.centre;
 
-    const mesh = new THREE.Mesh(
-      new THREE.BoxGeometry(w, h, d),
-      new THREE.MeshStandardMaterial({ color: cell.c, roughness: 0.82 })
-    );
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), surface(cell.c));
     mesh.position.set(px, y, pz);
-    mesh.castShadow = mesh.receiveShadow = true;
     scene.add(mesh);
+    const part = reg(mesh, 'mesh', attachTo, floor, 1, cell.c);
 
     const edge = new THREE.LineSegments(
       new THREE.EdgesGeometry(mesh.geometry),
-      new THREE.LineBasicMaterial({ color: 0x33383d, transparent: true, opacity: 0.22 })
+      new THREE.LineBasicMaterial({ color: EDGE, transparent: true, opacity: EDGE_OP })
     );
     edge.position.copy(mesh.position);
     scene.add(edge);
+    reg(edge, 'edge', attachTo, floor, EDGE_OP);
 
     const cap = makeLabel(cell.n, 'room');
     cap.position.set(
@@ -413,34 +536,54 @@ function annex({ at: [x, z], axis, len, depth, floor, cells, labelFace = 1,
       axis === 'x' ? z + labelFace * (depth / 2 + 0.6) : pz
     );
     scene.add(cap);
-
-    floorGroups[floor].push(mesh, edge, cap);
+    reg(cap, 'label', attachTo, floor, 1);
     roomLabels.push(cap);
 
-    if (attachTo) navCells.push({
+    const node = attachTo ? {
       id: `${attachTo}-annex#${floor}#${ci}#${cell.n}`,
       room: cell.n, bldg, key: attachTo, floor,
       along: null,                       // hangs off the bar - linked by proximity
       kind: classify(cell.n), attached: true,
       pos: new THREE.Vector3(px, y, pz),
-    });
+    } : null;
+    if (node) navCells.push(node);
+
+    mesh.userData.node = node;
+    partOf.set(mesh, part);
+    pickables.push(mesh);
   });
 }
 
-/** Flat ground feature (playground, car park, court …). */
+/**
+ * Ground feature (playground, car park, court …).
+ * 원본의 흙·아스팔트 색 대신 건물과 같은 흰 슬래브로 얇게 세워, 배치도 전체가
+ * 한 벌의 종이 모형처럼 보이게 한다. `color` 는 호출부 호환을 위해 남겨 두되
+ * 실제 색은 팔레트가 정한다. `y` 는 원래 겹친 평면끼리의 z-파이팅을 피하려던
+ * 값이므로, 입체가 된 지금은 "조회대처럼 다른 슬래브 위에 얹히는 것"이라는
+ * 뜻으로만 읽어 높이를 키운다 — 띄우면 허공에 뜬 타일처럼 보인다.
+ */
+const PAD_H = 0.55;
 function pad({ at: [x, z], w, d, color, name, y = 0.05 }) {
+  const h = y > 0.06 ? PAD_H * 1.7 : PAD_H;
   const mesh = new THREE.Mesh(
-    new THREE.PlaneGeometry(w, d),
-    new THREE.MeshStandardMaterial({ color, roughness: 1 })
+    new THREE.BoxGeometry(w, h, d),
+    new THREE.MeshStandardMaterial({ color: TONE.pad, roughness: 1, metalness: 0 })
   );
-  mesh.rotation.x = -Math.PI / 2;
-  mesh.position.set(x, y, z);
-  mesh.receiveShadow = true;
+  mesh.position.set(x, h / 2, z);
   scene.add(mesh);
   siteObjects.push(mesh);
+
+  const edge = new THREE.LineSegments(
+    new THREE.EdgesGeometry(mesh.geometry),
+    new THREE.LineBasicMaterial({ color: EDGE, transparent: true, opacity: EDGE_OP })
+  );
+  edge.position.copy(mesh.position);
+  scene.add(edge);
+  siteObjects.push(edge);
+
   if (name) {
     const t = makeLabel(name, 'site');
-    t.position.set(x, 0.9, z);
+    t.position.set(x, h + 0.6, z);
     scene.add(t);
     siteObjects.push(t);
   }
@@ -450,15 +593,22 @@ function pad({ at: [x, z], w, d, color, name, y = 0.05 }) {
 /* ══════════════════════════════════════════════════════════════════
    GROUND
    ══════════════════════════════════════════════════════════════════ */
+/* 잔디 대신 도면용 방안지 — 옅은 흰 바닥 위에 가는 격자선을 얹어
+   건물이 종이 위에 놓인 모형처럼 읽히게 한다. */
 {
   const g = new THREE.Mesh(
-    new THREE.PlaneGeometry(300, 230),
-    new THREE.MeshStandardMaterial({ color: 0x8caa68, roughness: 1 })
+    new THREE.PlaneGeometry(560, 460),
+    new THREE.MeshBasicMaterial({ color: 0xf8fafd })
   );
   g.rotation.x = -Math.PI / 2;
-  g.receiveShadow = true;
-  g.userData.noXray = true;          // 지면까지 투명해지면 장면이 붕 떠 보인다
+  g.position.y = -0.02;
   scene.add(g);
+
+  const grid = new THREE.GridHelper(560, 112, 0xd7e0ee, 0xe6ecf5);
+  grid.material.transparent = true;
+  grid.material.opacity = 0.9;
+  grid.material.depthWrite = false;
+  scene.add(grid);
 }
 
 /* ══════════════════════════════════════════════════════════════════
@@ -473,7 +623,8 @@ function pad({ at: [x, z], w, d, color, name, y = 0.05 }) {
      14.40  건물 끝
     지도에서 좌·우 계단이 모든 층에서 같은 x에 그려져 있으므로 이를 기준으로 맞춤. */
 makeBuilding({
-  key: 'main', name: '1. 본관', at: [9, 4], axis: 'x', len: 78, depth: 7,
+  // 이름표를 기본보다 높이 띄워 바로 뒤 아고라 이름표와 겹치지 않게 한다
+  key: 'main', name: '1. 본관', at: [9, 4], axis: 'x', len: 78, depth: 7, labelY: 26,
   floors: [
     { cells: [                                                   // 1층 · 행정
       { n:'화장실(여)',             w:0.50,  c:C.wc },
@@ -734,18 +885,38 @@ makeBuilding({
 
 /* ══════════════════════════════════════════════════════════════════
    연결 통로
+   통로 자체도 길찾기에서 고를 수 있는 장소이므로, 형상과 그래프가 어긋나지
+   않도록 여기 한 곳에서 정의하고 아래 NAVIGATION 절이 그대로 읽어 쓴다.
+   ends: [건물키, 층, x, z] — 그 지점에서 가장 가까운 칸에 통로를 붙인다.
    ══════════════════════════════════════════════════════════════════ */
-// 연결복도(3층) : 별관 ↔ 본관.
-// 별관 동쪽 면(x=-43.5)과 본관 서쪽 면(x=-30) 사이를 정확히 채우고,
-// 깊이·층높이는 본관과 동일하게 맞춰 두 건물이 어긋나 보이지 않게 한다.
+const CONNECTORS = [
+  {
+    id: 'conn-annex-main', label: '연결복도(3층) · 별관–본관',
+    // 별관 동쪽 면(x=-43.5)과 본관 서쪽 면(x=-30) 사이를 정확히 채우고,
+    // 깊이·층높이는 본관과 동일하게 맞춰 두 건물이 어긋나 보이지 않게 한다.
+    node: [-36.75, FLOOR_H * 2 + 2.1, 4],
+    ends: [['annex', 2, -43.5, 4], ['main', 2, -30, 4]],
+  },
+  {
+    id: 'conn-agora', label: '아고라(2.5층)',
+    // 지도에서 아고라는 급식실(조리실)과 급식실(학생식당)의 경계에 붙어 있으므로,
+    // 식당 서쪽 끝(x≈9)에 맞춰 두어야 급식실로 바로 이어진다.
+    node: [11, FLOOR_H * 1.5 + 2.1, -8],
+    ends: [['main', 2, 11, 0.5], ['rear', 0, 11, -16]],
+  },
+  {
+    id: 'conn-main-rear', label: '연결복도(3층) · 본관–후관',
+    node: [39, FLOOR_H * 2 + 2.1, -8],
+    ends: [['main', 2, 39, 0.5], ['rear', 1, 39, -16]],
+  },
+];
+
 bridge({ at: [-36.75, 4], w: 13.5, d: 7, floor: 2, name: '연결복도(3층)' });
+// 아고라의 한가운데는 본관 뒤로 숨는다 — 이름표만 북쪽으로 빼 본관 이름표를 피한다
+bridge({ at: [11, -8], w: 6, d: 16, floor: 1.5, color: C.agora,
+         name: '아고라(2.5층)', labelZ: -6 });
 
-// 아고라(2.5층) : 본관 ↔ 후관 — 2층과 3층 사이에 걸친 중간층.
-// 지도에서 아고라는 급식실(조리실)과 급식실(학생식당)의 경계에 붙어 있으므로,
-// 식당 서쪽 끝(x≈9)에 맞춰 두어야 급식실로 바로 이어진다.
-bridge({ at: [11, -8], w: 6, d: 16, floor: 1.5, color: C.agora, name: '아고라(2.5층)' });
-
-// 연결복도(3층) : 후관 2층 ↔ 본관 3층 — 층 높이가 달라 경사 브리지
+// 후관 2층 ↔ 본관 3층 — 층 높이가 달라 경사 브리지
 ramp({
   x: 39, w: 5,
   from: [-16, FLOOR_H * 1.5],   // 후관 2층 중심
@@ -776,12 +947,21 @@ pad({ at: [27, -12.5], w: 6, d: 2.5, color: 0xf2f2ee, name: '급수대', y: 0.08
   s.closePath();
   const m = new THREE.Mesh(
     new THREE.ShapeGeometry(s),
-    new THREE.MeshStandardMaterial({ color: 0x54a9c2, roughness: 0.25, metalness: 0.1 })
+    new THREE.MeshBasicMaterial({ color: 0xe4eef9 })
   );
   m.rotation.x = Math.PI / 2;             // ShapeGeometry lies in XY → rotate into XZ
   m.position.y = 0.06;
   scene.add(m);
   siteObjects.push(m);
+
+  const rim = new THREE.LineLoop(
+    new THREE.BufferGeometry().setFromPoints(s.getPoints()),
+    new THREE.LineBasicMaterial({ color: EDGE, transparent: true, opacity: EDGE_OP })
+  );
+  rim.rotation.x = Math.PI / 2;
+  rim.position.y = 0.07;
+  scene.add(rim);
+  siteObjects.push(rim);
   const t = makeLabel('후문', 'site');
   t.position.set(-40, 1, -28);
   scene.add(t);
@@ -832,17 +1012,20 @@ navCells.forEach(c => nodes.set(c.id, c));
 OUTDOOR.forEach(([id, label, x, z]) => nodes.set(id,
   { id, room: label, bldg: '야외', floor: 0, kind: 'outdoor',
     pos: new THREE.Vector3(x, OUT_Y, z) }));
+CONNECTORS.forEach(c => nodes.set(c.id,
+  { id: c.id, room: c.label, bldg: '연결통로', floor: 2, kind: 'connector',
+    pos: new THREE.Vector3(...c.node) }));
 
-/* 기숙사는 생활 공간이라 지나다니는 통로가 아니다. 노드를 지우면 기숙사 자체를
-   목적지로 고를 수 없으므로, 대신 인접 간선에 큰 가중치를 매겨 "그곳이 출발지나
-   도착지일 때만" 경로에 포함되도록 한다. */
+/* 기숙사는 생활 공간이라 지나다니는 통로가 아니다. 간선 자체는 그대로 두고
+   탐색할 때 큰 가중치를 얹어, 우회로가 있으면 알아서 피하고 기숙사가 출발지나
+   도착지일 때는 정상적으로 도달하게 한다. 가중치를 링크 단계가 아니라 탐색
+   단계에서 매기므로 사용자가 "기숙사 경유"를 켜고 끌 수 있다. */
 const RESTRICTED_COST = 30;
 navCells.forEach(c => { if (c.room.includes('기숙사')) c.restricted = true; });
 
 function link(a, b, mult = 1) {
   const A = nodes.get(a), B = nodes.get(b);
   if (!A || !B || a === b) return;
-  if (A.restricted || B.restricted) mult *= RESTRICTED_COST;
   const w = A.pos.distanceTo(B.pos) * mult;
   if (!adj.has(a)) adj.set(a, []);
   if (!adj.has(b)) adj.set(b, []);
@@ -923,17 +1106,13 @@ const linkedTo = (cell, key, floor) => (adj.get(cell.id) ?? []).some(e => {
   if (a) link(a.id, b.id, 2.4);
 });
 
-// ── 4. 건물 사이 연결 통로 (연결복도 · 아고라)
-[
-  // [건물A, 층, x, z] ↔ [건물B, 층, x, z]   — 3D 상의 브리지 위치 기준
-  [['annex', 2, -43.5, 4], ['main', 2, -30, 4]],  // 연결복도(3층)
-  // 아고라는 후관 1층 급식실로 내려선다. (2층으로 이으면 바로 기숙사에 닿는다)
-  [['main',  2, 11, 0.5], ['rear', 0, 11, -16]],
-  [['main',  2, 39, 0.5], ['rear', 1, 39, -16]],  // 연결복도(3층) → 후관 2층 계단
-].forEach(([a, b]) => {
-  const A = nearestCell(...a), B = nearestCell(...b);
-  if (A && B) link(A.id, B.id, 1.15);
-});
+// ── 4. 건물 사이 연결 통로. 통로 노드를 사이에 두고 양끝 건물에 붙이므로
+//      "아고라까지 가는 길"도 따로 안내할 수 있다.
+//      (아고라는 후관 1층 급식실로 내려선다 — 2층으로 이으면 바로 기숙사에 닿는다)
+CONNECTORS.forEach(c => c.ends.forEach(end => {
+  const cell = nearestCell(...end);
+  if (cell) link(c.id, cell.id, 1.15);
+}));
 
 // ── 4b. 한 건물을 여러 덩어리로 나눠 만든 곳은 내부에서 서로 이어 준다
 //        (담곡관은 서쪽 부속실 열과 동쪽 홀이 별도 블록이다)
@@ -981,7 +1160,9 @@ new Set(navCells.filter(c => c.floor === 0).map(c => c.key)).forEach(key => {
 });
 
 /* ── Dijkstra ─────────────────────────────────────────────────── */
-function findPath(startId, goalId) {
+/* opts.viaDorm === true 이면 기숙사 가중치를 빼고 순수 최단 경로를 구한다. */
+function findPath(startId, goalId, opts = {}) {
+  const dorm = opts.viaDorm ? 1 : RESTRICTED_COST;
   const dist = new Map([[startId, 0]]);
   const prev = new Map();
   const done = new Set();
@@ -995,7 +1176,8 @@ function findPath(startId, goalId) {
     if (id === goalId) break;
     for (const { to, w } of adj.get(id) ?? []) {
       if (done.has(to)) continue;
-      const nd = d + w;
+      const via = (nodes.get(id).restricted || nodes.get(to).restricted) ? dorm : 1;
+      const nd = d + w * via;
       if (nd < (dist.get(to) ?? Infinity)) {
         dist.set(to, nd); prev.set(to, id); queue.push([nd, to]);
       }
@@ -1026,30 +1208,13 @@ function routeMaterial(color) {
   });
 }
 
-function setXray(on) {
-  scene.traverse(o => {
-    const m = o.material;
-    if (!o.isMesh || !m || o.userData.isRoute || o.userData.noXray) return;
-    if (on) {
-      if (m.userData.baseOpacity === undefined) m.userData.baseOpacity = m.opacity;
-      m.transparent = true;
-      m.opacity = 0.26;
-      m.depthWrite = false;
-    } else if (m.userData.baseOpacity !== undefined) {
-      m.opacity = m.userData.baseOpacity;
-      m.transparent = m.opacity < 1;
-      m.depthWrite = true;
-    }
-  });
-}
-
 function clearRoute() {
   routeGroup.traverse(o => {
     o.geometry?.dispose?.();
     o.material?.dispose?.();
   });
   routeGroup.clear();
-  setXray(false);
+  refresh();
 }
 
 function drawRoute(cells) {
@@ -1060,7 +1225,7 @@ function drawRoute(cells) {
   const curve = new THREE.CatmullRomCurve3(pts, false, 'catmullrom', 0.25);
 
   // 굵은 외곽선 + 밝은 심지 두 겹으로 그려 어떤 배경에서도 눈에 띄게 한다
-  [[0.95, 0x7a1408, 998], [0.6, 0xff5a2b, 999]].forEach(([r, col, order]) => {
+  [[0.95, 0x1e3a8a, 998], [0.6, TONE.sel, 999]].forEach(([r, col, order]) => {
     const tube = new THREE.Mesh(
       new THREE.TubeGeometry(curve, Math.max(64, pts.length * 10), r, 10, false),
       routeMaterial(col)
@@ -1072,14 +1237,14 @@ function drawRoute(cells) {
 
   // 각 경유 지점에 작은 구슬을 찍어 이동 방향을 읽기 쉽게 한다
   pts.slice(1, -1).forEach(p => {
-    const bead = new THREE.Mesh(new THREE.SphereGeometry(0.85, 14, 10), routeMaterial(0xffd166));
+    const bead = new THREE.Mesh(new THREE.SphereGeometry(0.85, 14, 10), routeMaterial(0xbfdbfe));
     bead.position.copy(p);
     bead.renderOrder = 1000;
     bead.userData.isRoute = true;
     routeGroup.add(bead);
   });
 
-  const marker = (p, color, text) => {
+  const marker = (p, color, text, cls) => {
     const m = new THREE.Mesh(new THREE.SphereGeometry(1.7, 20, 14), routeMaterial(color));
     m.position.copy(p);
     m.renderOrder = 1001;
@@ -1095,81 +1260,175 @@ function drawRoute(cells) {
     drop.userData.isRoute = true;
     routeGroup.add(drop);
 
-    const t = makeLabel(text, 'bldg');
+    const t = makeLabel(text, cls);
     t.position.copy(p).add(new THREE.Vector3(0, 3.4, 0));
     routeGroup.add(t);
   };
-  marker(pts[0], 0x1e9e52, '출발');
-  marker(pts[pts.length - 1], 0xd92b2b, '도착');
+  marker(pts[0], 0x16a34a, '출발', 'pin start');
+  marker(pts[pts.length - 1], 0xdc2626, '도착', 'pin end');
 
-  if (document.getElementById('xray').checked) setXray(true);
+  refresh();
 }
 
 /* ══════════════════════════════════════════════════════════════════
    UI
    ══════════════════════════════════════════════════════════════════ */
 // 접기/펼치기 — 각 섹션 제목을 누르면 본문이 접힌다
-document.querySelectorAll('#ctrl .sec h2').forEach(h => {
-  h.onclick = () => h.parentElement.classList.toggle('collapsed');
-});
-
-const floorsOn = [true, true, true, true];
-const floorsBox = document.getElementById('floors');
-['1층', '2층', '3층', '4층'].forEach((name, i) => {
-  const b = document.createElement('button');
-  b.textContent = name;
-  b.onclick = () => {
-    floorsOn[i] = !floorsOn[i];
-    b.classList.toggle('off', !floorsOn[i]);
-    applyVisibility();
-  };
-  floorsBox.appendChild(b);
-});
-
-const focusBox = document.getElementById('focus');
-Object.keys(focusTargets).filter(k => k.includes('.')).forEach(name => {
-  const b = document.createElement('button');
-  b.textContent = name;
-  b.onclick = () => flyTo(focusTargets[name]);
-  focusBox.appendChild(b);
+document.querySelectorAll('.cap.click').forEach(c => {
+  c.onclick = () => c.parentElement.classList.toggle('closed');
 });
 
 const showRooms = document.getElementById('showRooms');
 const showSite  = document.getElementById('showSite');
-showRooms.onchange = showSite.onchange = applyVisibility;
+const xrayBox   = document.getElementById('xray');
+showRooms.onchange = showSite.onchange = xrayBox.onchange = () => refresh();
 
-// 경로가 떠 있는 동안에만 투시가 의미 있으므로 그때만 즉시 반영한다
-document.getElementById('xray').onchange = e => {
-  if (routeGroup.children.length) setXray(e.target.checked);
-};
+/* ── 층 선택 ──────────────────────────────────────────────────
+   전체(null) 또는 본관의 한 개 층. 층을 고르면 그 층만 또렷하게 남기고
+   나머지 층·다른 건물은 반투명으로 물러난다. */
+let floorFocus = null;
 
-function applyVisibility() {
-  floorGroups.forEach((group, i) => {
-    group.forEach(o => {
-      const isLabel = o.isCSS2DObject || o instanceof CSS2DObject;
-      o.visible = floorsOn[i] && (!isLabel || showRooms.checked);
-    });
+const floorsBox = document.getElementById('floors');
+const roomsPerFloor = [0, 0, 0, 0];
+navCells.forEach(c => {
+  if (c.key === 'main' && c.kind !== 'stair' && c.kind !== 'elev') roomsPerFloor[c.floor]++;
+});
+
+const floorBtns = [];
+[['전체', null], ['1층', 0], ['2층', 1], ['3층', 2], ['4층', 3]].forEach(([nm, idx]) => {
+  const b = document.createElement('button');
+  b.className = 'floor';
+  const n = idx === null ? roomsPerFloor.reduce((s, v) => s + v, 0) : roomsPerFloor[idx];
+  b.innerHTML = `<span class="nm"></span><span class="ct">${n}실</span>`;
+  b.querySelector('.nm').textContent = nm;
+  b.onclick = () => setFloor(idx);
+  floorsBox.appendChild(b);
+  floorBtns.push({ b, idx });
+});
+
+function setFloor(idx) {
+  floorFocus = idx;
+  floorBtns.forEach(f => f.b.classList.toggle('on', f.idx === idx));
+  refresh();
+}
+
+/* ── 건물 보기 ────────────────────────────────────────────── */
+const focusBox = document.getElementById('focus');
+Object.keys(focusTargets).filter(k => k.includes('.')).forEach(name => {
+  const b = document.createElement('button');
+  b.className = 'chip';
+  b.textContent = name.replace(/^\d+\.\s*/, '');   // "1. 본관" → "본관"
+  b.onclick = () => flyTo(focusTargets[name]);
+  focusBox.appendChild(b);
+});
+
+/* ── 표현 갱신 ────────────────────────────────────────────────
+   층 강조 · 경로 투시 · 선택 강조가 서로 덮어쓰지 않도록, 세 가지를 모두
+   여기서 한 번에 계산해 각 상자의 불투명도를 다시 정한다. */
+function refresh() {
+  const xray = xrayBox.checked && routeGroup.children.length > 0;
+
+  parts.forEach(p => {
+    const lit = floorFocus === null || (p.key === 'main' && p.floor === floorFocus);
+
+    if (p.type === 'label') {
+      p.o.visible = showRooms.checked && lit;
+      return;
+    }
+    let k = p.sel ? 1 : lit ? 1 : 0.13;
+    if (xray && !p.sel) k = Math.min(k, 0.24);
+
+    // 모든 표면이 이미 transparent 이므로 여기서는 opacity 만 만진다 (surface 참고)
+    const m = p.o.material;
+    m.opacity = p.base * k;
+    m.depthWrite = m.opacity > 0.99;
   });
+
   siteObjects.forEach(o => { o.visible = showSite.checked; });
 }
-applyVisibility();
+
+/* ── 시설 상자 클릭 ───────────────────────────────────────────
+   드래그로 화면을 돌린 경우와 구분해야 하므로 눌렀다 뗀 거리로 판정한다. */
+const hint = document.getElementById('hint');
+const raycaster = new THREE.Raycaster();
+const ptr = new THREE.Vector2();
+let selected = null, downAt = null, hoverAt = 0;
+
+function pickAt(ev) {
+  ptr.set(ev.clientX / innerWidth * 2 - 1, -(ev.clientY / innerHeight * 2 - 1));
+  raycaster.setFromCamera(ptr, camera);
+  return raycaster.intersectObjects(pickables.filter(m => m.visible), false)[0]?.object ?? null;
+}
+
+function select(mesh) {
+  if (selected) {
+    const prev = partOf.get(selected);
+    selected.material.color.setHex(prev.tone);
+    prev.sel = false;
+  }
+  selected = mesh;
+  if (selected) {
+    const p = partOf.get(selected);
+    selected.material.color.setHex(TONE.sel);
+    p.sel = true;
+  }
+  const here = selected?.userData.node?.bldg ?? '1. 본관';
+  Object.entries(bldgLabels).forEach(([k, el]) => el.classList.toggle('on', k === here));
+  showHint();
+  refresh();
+}
+
+function showHint() {
+  const node = selected?.userData.node;
+  if (!node) { hint.textContent = '시설 상자를 클릭해 보세요'; return; }
+  hint.innerHTML =
+    `<div class="nm"></div><div class="meta"></div>
+     <div class="pa"><button data-t="from">출발지로</button><button data-t="to">도착지로</button></div>`;
+  hint.querySelector('.nm').textContent = node.room;
+  hint.querySelector('.meta').textContent = `${node.bldg} · ${node.floor + 1}층`;
+  hint.querySelectorAll('button').forEach(b => b.onclick = () => {
+    const label = labelOf.get(node.id);
+    if (!label) return;
+    (b.dataset.t === 'from' ? fromIn : toIn).value = label;
+    document.getElementById('secNav').classList.remove('closed');
+  });
+}
+
+renderer.domElement.addEventListener('pointerdown', e => {
+  downAt = { x: e.clientX, y: e.clientY };
+});
+renderer.domElement.addEventListener('pointerup', e => {
+  if (!downAt) return;
+  const moved = Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y);
+  downAt = null;
+  if (moved > 5) return;                     // 회전 조작이었다
+  select(pickAt(e));
+});
+renderer.domElement.addEventListener('pointermove', e => {
+  if (downAt || performance.now() - hoverAt < 70) return;
+  hoverAt = performance.now();
+  renderer.domElement.style.cursor = pickAt(e) ? 'pointer' : '';
+});
+
+bldgLabels['1. 본관']?.classList.add('on');   // 기본 강조는 본관
+setFloor(null);
 
 /* ── 길찾기 UI ────────────────────────────────────────────────── */
 // 사람이 읽는 이름 -> 노드 id.  같은 이름(화장실·계단 등)이 여러 개이므로
 // "건물 층 교실" 형태로 유일하게 만든다.
 const placeList = [];
 const placeIndex = new Map();
+const labelOf = new Map();          // 노드 id -> 사람이 읽는 이름 (상자 클릭용)
 nodes.forEach(n => {
-  if (n.kind === 'outdoor') {
-    place(n.room, n.id);
-  } else {
-    place(`${n.bldg} ${n.floor + 1}층 ${n.room}`, n.id);
-  }
+  // 야외 지점과 연결통로는 층 개념이 없으므로 이름을 그대로 쓴다
+  if (n.kind === 'outdoor' || n.kind === 'connector') place(n.room, n.id);
+  else place(`${n.bldg} ${n.floor + 1}층 ${n.room}`, n.id);
 });
 function place(label, id) {
   let unique = label, i = 2;
   while (placeIndex.has(unique)) unique = `${label} (${i++})`;
   placeIndex.set(unique, id);
+  labelOf.set(id, unique);
   placeList.push(unique);
 }
 placeList.sort((a, b) => a.localeCompare(b, 'ko'));
@@ -1206,29 +1465,34 @@ document.getElementById('go').onclick = () => {
     clearRoute();
     return;
   }
-  const res = findPath(a, b);
+  const viaDorm = document.getElementById('viaDorm').checked;
+  const res = findPath(a, b, { viaDorm });
   if (!res) {
     steps.innerHTML = '<div class="warn">연결된 경로를 찾지 못했습니다.</div>';
     clearRoute();
     return;
   }
 
+  setFloor(null);                            // 경로가 층 강조에 가려지지 않도록
   drawRoute(res.path);
-  floorsOn.fill(true);                       // 경로가 층에 가려지지 않도록
-  [...floorsBox.children].forEach(b => b.classList.remove('off'));
-  applyVisibility();
 
   // 같은 건물·같은 층이 이어지는 구간은 한 줄로 묶어 안내한다
   const legs = [];
   res.path.forEach(n => {
-    const where = n.kind === 'outdoor' ? '야외' : `${n.bldg} ${n.floor + 1}층`;
+    const where = n.kind === 'outdoor'   ? '야외'
+                : n.kind === 'connector' ? '연결통로'
+                : `${n.bldg} ${n.floor + 1}층`;
     const last = legs[legs.length - 1];
     if (last && last.where === where) last.rooms.push(n.room);
     else legs.push({ where, rooms: [n.room] });
   });
 
+  const throughDorm = res.path.some(n => n.restricted) &&
+                      !nodes.get(a).restricted && !nodes.get(b).restricted;
   steps.innerHTML =
-    `<div class="sum">총 이동거리 약 ${Math.round(res.length)} m · ${legs.length}개 구간</div><ol>` +
+    `<div class="sum">총 이동거리 약 ${Math.round(res.length)} m · ${legs.length}개 구간</div>` +
+    (throughDorm ? '<div class="note">이 경로는 기숙사를 지나갑니다.</div>' : '') +
+    '<ol>' +
     legs.map(l => {
       const via = l.rooms.length > 2
         ? `${l.rooms[0]} → … → ${l.rooms[l.rooms.length - 1]}`
@@ -1247,6 +1511,7 @@ document.getElementById('go').onclick = () => {
 
 document.getElementById('clear').onclick = () => {
   clearRoute();
+  select(null);
   steps.style.display = 'none';
   fromIn.value = toIn.value = '';
 };
@@ -1286,8 +1551,9 @@ function tick() {
   }
 
   // fade room captions out when the camera pulls back, so the overview stays clean
+  // — 멀리서는 건물 이름표만 남아야 배치가 읽힌다
   const dist = camera.position.distanceTo(controls.target);
-  const opacity = dist > 190 ? 0 : dist > 120 ? (190 - dist) / 70 : 1;
+  const opacity = dist > 116 ? 0 : dist > 74 ? (116 - dist) / 42 : 1;
   roomLabels.forEach(l => { l.element.style.opacity = opacity; });
 
   controls.update();
