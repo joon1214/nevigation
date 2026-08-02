@@ -1,0 +1,1258 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>충주대원고등학교 3D 배치도</title>
+<style>
+  html, body { margin:0; height:100%; overflow:hidden; background:#aecbe0;
+    font-family:"Malgun Gothic","Apple SD Gothic Neo",sans-serif; }
+  canvas { display:block; }
+
+  .panel { position:absolute; z-index:10; background:rgba(255,255,255,.9);
+    border-radius:10px; box-shadow:0 3px 12px rgba(0,0,0,.18); color:#1d1d1f; }
+
+  #title { top:12px; left:12px; padding:12px 16px; max-width:270px; }
+  #title h1 { margin:0 0 4px; font-size:16px; }
+  #title p { margin:0; font-size:11.5px; line-height:1.6; color:#555; }
+
+  #ctrl { top:12px; right:12px; padding:10px 14px; width:180px; font-size:12px; }
+  #ctrl .sec + .sec { margin-top:6px; border-top:1px solid #ececf0; padding-top:6px; }
+  #ctrl h2 { display:flex; justify-content:space-between; align-items:center;
+    margin:0; padding:4px 0; font-size:11.5px; letter-spacing:.4px; color:#666;
+    text-transform:uppercase; font-weight:700; cursor:pointer; user-select:none; }
+  #ctrl h2:hover { color:#2f6fd0; }
+  #ctrl .chev { font-size:9px; transition:transform .15s; }
+  #ctrl .sec.collapsed .chev { transform:rotate(-90deg); }
+  #ctrl .sec.collapsed .body { display:none; }
+  #ctrl .body { padding:4px 0 6px; }
+  #ctrl button { display:block; width:100%; margin:3px 0; padding:6px 8px;
+    font:inherit; text-align:left; border:1px solid #d5d5da; border-radius:6px;
+    background:#fff; cursor:pointer; transition:.12s; }
+  #ctrl button:hover { background:#eef3f9; border-color:#9db6d0; }
+  #ctrl button.off { opacity:.4; }
+  #ctrl label { display:flex; align-items:center; gap:6px; margin:5px 0; cursor:pointer; }
+
+  #nav { top:12px; left:12px; padding:12px 16px; width:262px; font-size:12px; }
+  #nav h1 { margin:0 0 2px; font-size:15px; }
+  #nav .sub { margin:0 0 10px; font-size:10.5px; color:#666; line-height:1.5; }
+  #nav .row { display:flex; align-items:center; gap:6px; margin:5px 0; }
+  #nav .dot { width:9px; height:9px; border-radius:50%; flex:0 0 auto; }
+  #nav input[type=text] { flex:1; min-width:0; padding:6px 8px; font:inherit;
+    border:1px solid #d0d0d6; border-radius:6px; background:#fff; }
+  #nav input[type=text]:focus { outline:none; border-color:#5b8fd0;
+    box-shadow:0 0 0 3px rgba(91,143,208,.18); }
+  #nav .acts { display:flex; gap:6px; margin-top:9px; }
+  #nav .acts button { flex:1; padding:7px 8px; font:inherit; font-weight:700;
+    border-radius:6px; cursor:pointer; border:1px solid #d0d0d6; background:#fff; }
+  #nav .acts button.go { background:#2f6fd0; border-color:#2f6fd0; color:#fff; }
+  #nav .acts button:hover { filter:brightness(.95); }
+  #swap { padding:4px 7px; font:inherit; cursor:pointer; border:1px solid #d0d0d6;
+    border-radius:6px; background:#fff; line-height:1; }
+  #steps { margin-top:10px; max-height:230px; overflow-y:auto; font-size:11px;
+    line-height:1.55; border-top:1px solid #e6e6ea; padding-top:8px; display:none; }
+  #steps .sum { font-weight:700; margin-bottom:6px; color:#2f6fd0; }
+  #steps ol { margin:0; padding-left:16px; }
+  #steps li { margin:3px 0; }
+  #steps .warn { color:#c92a2a; }
+
+  #legend { bottom:12px; left:12px; padding:10px 14px; font-size:11.5px; line-height:1.85; }
+  .sw { display:inline-block; width:11px; height:11px; margin-right:7px;
+    border-radius:2px; vertical-align:-1px; border:1px solid rgba(0,0,0,.15); }
+
+  .lbl { pointer-events:none; white-space:nowrap; color:#15181c;
+    text-shadow:0 1px 2px rgba(255,255,255,.9), 0 0 3px rgba(255,255,255,.8); }
+  .lbl.bldg { font-size:14px; font-weight:800; padding:3px 9px; border-radius:5px;
+    background:rgba(255,255,255,.85); box-shadow:0 1px 4px rgba(0,0,0,.2); }
+  .lbl.room { font-size:9px; font-weight:600; }
+  .lbl.site { font-size:11px; font-weight:700; color:#3a4652; }
+</style>
+</head>
+<body>
+
+<div id="nav" class="panel">
+  <h1>충주대원고등학교</h1>
+  <p class="sub">비상대피도 기반 3D 배치도 · 길찾기<br>
+  드래그 회전 &nbsp;|&nbsp; 휠 확대 &nbsp;|&nbsp; 우클릭 이동</p>
+
+  <div class="row">
+    <span class="dot" style="background:#22b35e"></span>
+    <input type="text" id="fromIn" list="places" placeholder="출발지 (예: 3-1)" autocomplete="off">
+  </div>
+  <div class="row">
+    <span class="dot" style="background:#e03131"></span>
+    <input type="text" id="toIn" list="places" placeholder="도착지 (예: 급식실(학생식당))" autocomplete="off">
+    <button id="swap" title="출발지·도착지 바꾸기">⇅</button>
+  </div>
+  <datalist id="places"></datalist>
+
+  <div class="acts">
+    <button class="go" id="go">길찾기</button>
+    <button id="clear">지우기</button>
+  </div>
+
+  <div id="steps"></div>
+</div>
+
+<div id="ctrl" class="panel">
+  <div class="sec">
+    <h2>층 표시 <span class="chev">▾</span></h2>
+    <div class="body"><div id="floors"></div></div>
+  </div>
+  <div class="sec">
+    <h2>건물 보기 <span class="chev">▾</span></h2>
+    <div class="body"><div id="focus"></div></div>
+  </div>
+  <div class="sec">
+    <h2>옵션 <span class="chev">▾</span></h2>
+    <div class="body">
+      <label><input type="checkbox" id="showRooms" checked> 교실 이름</label>
+      <label><input type="checkbox" id="showSite" checked> 부지 시설</label>
+      <label><input type="checkbox" id="xray" checked> 경로 볼 때 건물 투시</label>
+    </div>
+  </div>
+</div>
+
+<div id="legend" class="panel">
+  <div><span class="sw" style="background:#dcd97a"></span>1학년 (본관 3층)</div>
+  <div><span class="sw" style="background:#9cbd76"></span>2학년 (본관 4층)</div>
+  <div><span class="sw" style="background:#7ba2d1"></span>3학년 (본관 2층)</div>
+  <div><span class="sw" style="background:#f2c9a8"></span>교무·행정실</div>
+  <div><span class="sw" style="background:#d9c6e8"></span>특별교실</div>
+  <div><span class="sw" style="background:#f0b3c4"></span>급식실 · 화장실</div>
+  <div><span class="sw" style="background:#a7b3c6"></span>기숙사</div>
+  <div><span class="sw" style="background:#f7f7f2"></span>계단 · 승강기</div>
+</div>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+} }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+
+/* ══════════════════════════════════════════════════════════════════
+   SCENE
+   ══════════════════════════════════════════════════════════════════ */
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xaecbe0);
+scene.fog = new THREE.Fog(0xaecbe0, 190, 460);
+
+const camera = new THREE.PerspectiveCamera(46, innerWidth / innerHeight, 0.5, 1200);
+camera.position.set(6, 92, 128);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+document.body.appendChild(renderer.domElement);
+
+const labelRenderer = new CSS2DRenderer();
+labelRenderer.setSize(innerWidth, innerHeight);
+Object.assign(labelRenderer.domElement.style,
+  { position: 'absolute', top: '0', pointerEvents: 'none' });
+document.body.appendChild(labelRenderer.domElement);
+
+// controls MUST bind to the WebGL canvas - the label layer is pointer-events:none
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.set(6, 6, 4);
+controls.enableDamping = true;
+controls.dampingFactor = 0.075;
+controls.maxPolarAngle = Math.PI * 0.487;
+controls.minDistance = 22;
+controls.maxDistance = 300;
+
+scene.add(new THREE.AmbientLight(0xffffff, 0.62));
+scene.add(new THREE.HemisphereLight(0xcfe4f2, 0x6f8a56, 0.45));
+const sun = new THREE.DirectionalLight(0xfff2d8, 1.05);
+sun.position.set(70, 120, 55);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+Object.assign(sun.shadow.camera,
+  { left: -130, right: 130, top: 130, bottom: -130, near: 1, far: 320 });
+sun.shadow.camera.updateProjectionMatrix();
+sun.shadow.bias = -0.0005;
+scene.add(sun);
+
+/* ══════════════════════════════════════════════════════════════════
+   PALETTE  — mirrors the cell colours used on the evacuation map
+   ══════════════════════════════════════════════════════════════════ */
+const C = {
+  g1:      0xdcd97a,  // 1학년 교실 (노랑)
+  g2:      0x9cbd76,  // 2학년 교실 (초록)
+  g3:      0x7ba2d1,  // 3학년 교실 (파랑)
+  office:  0xf2c9a8,  // 교무·행정 (살구)
+  lab:     0xe8d5b8,  // 연구실
+  special: 0xd9c6e8,  // 특별교실 (연보라)
+  wc:      0xf0b3c4,  // 화장실 (분홍)
+  stair:   0xf7f7f2,  // 계단 (흰색)
+  elev:    0xe4e4dc,  // 승강기
+  entry:   0xa9d6e8,  // 현관 (하늘)
+  food:    0xf0b3c4,  // 급식실
+  dorm:    0xa7b3c6,  // 기숙사
+  study:   0xc3cde0,  // 정독실
+  library: 0xd4bE93,  // 도서관
+  store:   0xc9c0b0,  // 창고
+  gym:     0xa9d8e4,  // 체육관
+  corr:    0xd8d3c8,  // 복도
+  agora:   0xf0e4a4,  // 아고라
+  // 담곡관 전용 — 지도에서 이 건물만 다른 색조로 칠해져 있다
+  dgHall:  0xa8c6cf,  // 담곡관 홀 (청회색)
+  dgRoom:  0xe8ddd0,  // 예체능교육실 (미색)
+  dgWcF:   0xa8709c,  // 화장실(여) (자주)
+  dgWc:    0xe8c4a8,  // 화장실 (살구)
+  dgWhite: 0xfafaf5,  // 현관 · 악기실
+};
+
+const FLOOR_H = 4.3;                    // one storey, world units
+const GAP     = 0.16;                   // gap between adjacent room cells
+
+/* ══════════════════════════════════════════════════════════════════
+   BUILDERS
+   ══════════════════════════════════════════════════════════════════ */
+const floorGroups = [[], [], [], []];   // meshes+labels indexed by storey (0=1층)
+const roomLabels  = [];
+const siteObjects = [];
+const focusTargets = {};
+
+/* Every room cell also becomes a node in the walking graph used by 길찾기.
+   `along` is the cell's position on its floor bar, so cells can be chained in
+   corridor order; `kind` decides how the node may be linked vertically. */
+const navCells = [];
+function classify(n) {
+  if (n.includes('계단')) return 'stair';
+  if (n.includes('ELEV')) return 'elev';
+  if (n.includes('현관')) return 'entry';
+  return 'room';
+}
+
+function makeLabel(text, cls) {
+  const el = document.createElement('div');
+  el.className = 'lbl ' + cls;
+  el.textContent = text;
+  return new CSS2DObject(el);
+}
+
+/* Distribute cells across `span`, honouring relative weights, so every floor
+   of a building keeps the SAME overall footprint no matter how many rooms it
+   holds. Returns [{...cell, size, centre}]. */
+function layout(cells, span) {
+  const total = cells.reduce((s, c) => s + (c.w ?? 1), 0);
+  let cursor = -span / 2;
+  return cells.map(c => {
+    const size = ((c.w ?? 1) / total) * span;
+    const centre = cursor + size / 2;
+    cursor += size;
+    return { ...c, size, centre };
+  });
+}
+
+/**
+ * A multi-storey building drawn as a grid of individual room boxes.
+ * @param cfg.at     [x, z] footprint centre
+ * @param cfg.axis   'x' rooms run east-west | 'z' rooms run north-south
+ * @param cfg.len    footprint length along `axis`
+ * @param cfg.depth  footprint depth across `axis`
+ * @param cfg.floors [{ cells:[{n,w,c}], span?, align? }]  index 0 = 1층
+ */
+function makeBuilding(cfg) {
+  const { at: [ox, oz], axis, len, depth, floors, name, labelY } = cfg;
+  const lf = cfg.labelFace ?? 1;      // 1 = south/east face, -1 = north/west face
+  const key = cfg.key ?? name;        // stable id used by the navigation graph
+  const root = new THREE.Group();
+  root.position.set(ox, 0, oz);
+  scene.add(root);
+
+  floors.forEach((fl, fi) => {
+    const y = fi * FLOOR_H;
+    // a partial floor (e.g. 후관 3층) covers only part of the footprint
+    const span = (fl.span ?? 1) * len;
+    const shift = fl.align === 'start' ? -(len - span) / 2
+                : fl.align === 'end'   ?  (len - span) / 2 : 0;
+
+    layout(fl.cells, span).forEach((cell, ci) => {
+      const along = cell.size - GAP;
+      const w = axis === 'x' ? along : depth;
+      const d = axis === 'x' ? depth : along;
+
+      const mesh = new THREE.Mesh(
+        new THREE.BoxGeometry(w, FLOOR_H - GAP, d),
+        new THREE.MeshStandardMaterial({
+          color: cell.c ?? C.office, roughness: 0.82, metalness: 0.03,
+        })
+      );
+      const px = axis === 'x' ? cell.centre + shift : 0;
+      const pz = axis === 'x' ? 0 : cell.centre + shift;
+      mesh.position.set(px, y + (FLOOR_H - GAP) / 2, pz);
+      mesh.castShadow = mesh.receiveShadow = true;
+      root.add(mesh);
+      floorGroups[fi].push(mesh);
+
+      const outline = new THREE.LineSegments(
+        new THREE.EdgesGeometry(mesh.geometry),
+        new THREE.LineBasicMaterial({ color: 0x33383d, transparent: true, opacity: 0.22 })
+      );
+      outline.position.copy(mesh.position);
+      root.add(outline);
+      floorGroups[fi].push(outline);
+
+      // room caption, floated just outside the sunny (south / east) face
+      const cap = makeLabel(cell.n, 'room');
+      cap.position.set(
+        axis === 'x' ? px : lf * (depth / 2 + 0.6),
+        y + FLOOR_H * 0.55,
+        axis === 'x' ? lf * (depth / 2 + 0.6) : pz
+      );
+      root.add(cap);
+      floorGroups[fi].push(cap);
+      roomLabels.push(cap);
+
+      if (key) navCells.push({
+        id: `${key}#${fi}#${ci}`,
+        room: cell.n,
+        bldg: cfg.navName ?? name ?? key,
+        key, floor: fi,
+        along: cell.centre + shift,
+        kind: classify(cell.n),
+        pos: new THREE.Vector3(ox + px, y + 1.6, oz + pz),
+      });
+    });
+  });
+
+  if (name) {
+    const tag = makeLabel(name, 'bldg');
+    tag.position.set(0, labelY ?? floors.length * FLOOR_H + 3.2, 0);
+    root.add(tag);
+  }
+  focusTargets[name] = new THREE.Vector3(ox, floors.length * FLOOR_H / 2, oz);
+  return root;
+}
+
+/** A corridor / bridge floating at a fixed storey band. */
+function bridge({ at: [x, z], w, d, floor, storeys = 1, color = C.corr, name }) {
+  const h = storeys * FLOOR_H - GAP;
+  const yBase = floor * FLOOR_H;          // `floor` may be fractional (e.g. 2.5층)
+  const mesh = new THREE.Mesh(
+    new THREE.BoxGeometry(w, h, d),
+    new THREE.MeshStandardMaterial({ color, roughness: 0.85 })
+  );
+  mesh.position.set(x, yBase + h / 2, z);
+  mesh.castShadow = mesh.receiveShadow = true;
+  scene.add(mesh);
+  const edge = new THREE.LineSegments(
+    new THREE.EdgesGeometry(mesh.geometry),
+    new THREE.LineBasicMaterial({ color: 0x33383d, transparent: true, opacity: 0.22 })
+  );
+  edge.position.copy(mesh.position);
+  scene.add(edge);
+  if (name) { const t = makeLabel(name, 'site'); t.position.set(x, yBase + h + 1.2, z); scene.add(t); }
+  return mesh;
+}
+
+/** A ramped bridge tying two DIFFERENT storeys together. */
+function ramp({ x, w, from: [z1, y1], to: [z2, y2], thick = 2.3, color = C.corr, name }) {
+  const dz = z2 - z1, dy = y2 - y1;
+  const len = Math.hypot(dz, dy);
+  const mesh = new THREE.Mesh(
+    new THREE.BoxGeometry(w, thick, len),
+    new THREE.MeshStandardMaterial({ color, roughness: 0.85 })
+  );
+  mesh.rotation.x = -Math.atan2(dy, dz);
+  mesh.position.set(x, (y1 + y2) / 2, (z1 + z2) / 2);
+  mesh.castShadow = mesh.receiveShadow = true;
+  scene.add(mesh);
+  const o = new THREE.LineSegments(new THREE.EdgesGeometry(mesh.geometry),
+    new THREE.LineBasicMaterial({ color: 0x33383d, transparent: true, opacity: 0.22 }));
+  o.position.copy(mesh.position); o.rotation.copy(mesh.rotation);
+  scene.add(o);
+  if (name) { const t = makeLabel(name, 'site'); t.position.set(x, Math.max(y1, y2) + 2, (z1 + z2) / 2); scene.add(t); }
+  return mesh;
+}
+
+/**
+ * A volume that juts OUT of a building's flank on one storey — the map draws
+ * these as small blocks hanging off the main bar (본관의 화장실·숙직실 띠,
+ * 별관의 화장실). `cells` are laid out along `axis` exactly like a floor.
+ */
+function annex({ at: [x, z], axis, len, depth, floor, cells, labelFace = 1,
+                 attachTo, bldg }) {
+  const h = FLOOR_H - GAP;
+  const y = floor * FLOOR_H + h / 2;
+
+  layout(cells, len).forEach((cell, ci) => {
+    const along = cell.size - GAP;
+    const w = axis === 'x' ? along : depth;
+    const d = axis === 'x' ? depth : along;
+    const px = axis === 'x' ? x + cell.centre : x;
+    const pz = axis === 'x' ? z : z + cell.centre;
+
+    const mesh = new THREE.Mesh(
+      new THREE.BoxGeometry(w, h, d),
+      new THREE.MeshStandardMaterial({ color: cell.c, roughness: 0.82 })
+    );
+    mesh.position.set(px, y, pz);
+    mesh.castShadow = mesh.receiveShadow = true;
+    scene.add(mesh);
+
+    const edge = new THREE.LineSegments(
+      new THREE.EdgesGeometry(mesh.geometry),
+      new THREE.LineBasicMaterial({ color: 0x33383d, transparent: true, opacity: 0.22 })
+    );
+    edge.position.copy(mesh.position);
+    scene.add(edge);
+
+    const cap = makeLabel(cell.n, 'room');
+    cap.position.set(
+      axis === 'x' ? px : px + labelFace * (depth / 2 + 0.6),
+      y + h * 0.15,
+      axis === 'x' ? z + labelFace * (depth / 2 + 0.6) : pz
+    );
+    scene.add(cap);
+
+    floorGroups[floor].push(mesh, edge, cap);
+    roomLabels.push(cap);
+
+    if (attachTo) navCells.push({
+      id: `${attachTo}-annex#${floor}#${ci}#${cell.n}`,
+      room: cell.n, bldg, key: attachTo, floor,
+      along: null,                       // hangs off the bar - linked by proximity
+      kind: classify(cell.n), attached: true,
+      pos: new THREE.Vector3(px, y, pz),
+    });
+  });
+}
+
+/** Flat ground feature (playground, car park, court …). */
+function pad({ at: [x, z], w, d, color, name, y = 0.05 }) {
+  const mesh = new THREE.Mesh(
+    new THREE.PlaneGeometry(w, d),
+    new THREE.MeshStandardMaterial({ color, roughness: 1 })
+  );
+  mesh.rotation.x = -Math.PI / 2;
+  mesh.position.set(x, y, z);
+  mesh.receiveShadow = true;
+  scene.add(mesh);
+  siteObjects.push(mesh);
+  if (name) {
+    const t = makeLabel(name, 'site');
+    t.position.set(x, 0.9, z);
+    scene.add(t);
+    siteObjects.push(t);
+  }
+  return mesh;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   GROUND
+   ══════════════════════════════════════════════════════════════════ */
+{
+  const g = new THREE.Mesh(
+    new THREE.PlaneGeometry(300, 230),
+    new THREE.MeshStandardMaterial({ color: 0x8caa68, roughness: 1 })
+  );
+  g.rotation.x = -Math.PI / 2;
+  g.receiveShadow = true;
+  g.userData.noXray = true;          // 지면까지 투명해지면 장면이 붕 떠 보인다
+  scene.add(g);
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   1. 본관  — 4개 층, 동서 방향
+   같은 열(index 7·8)에 중앙현관 / 각 학년 연구실 / 행정실이 정렬되도록
+   앞 7칸의 가중치를 네 층 모두 동일하게 맞춤.
+   ══════════════════════════════════════════════════════════════════ */
+/*  본관 공통 열 그리드 — 네 층의 누적 폭이 아래 세 지점에서 정확히 일치한다.
+      6.05  계단(좌) 뒤 ~ 연구실 열 앞
+      6.95  중앙현관 / 진학전략기획부 / 1·2학년연구실 열 끝
+     12.05  계단(우) 시작
+     14.40  건물 끝
+    지도에서 좌·우 계단이 모든 층에서 같은 x에 그려져 있으므로 이를 기준으로 맞춤. */
+makeBuilding({
+  key: 'main', name: '1. 본관', at: [9, 4], axis: 'x', len: 78, depth: 7,
+  floors: [
+    { cells: [                                                   // 1층 · 행정
+      { n:'화장실(여)',             w:0.50,  c:C.wc },
+      { n:'등사실·교직원휴게실(남)', w:1.20,  c:C.office },
+      { n:'계단',                   w:0.45,  c:C.stair },
+      { n:'보건실',                 w:1.00,  c:C.office },
+      { n:'교무센터',               w:1.00,  c:C.office },
+      { n:'교감실',                 w:1.00,  c:C.office },
+      { n:'방송실',                 w:0.45,  c:C.office },
+      { n:'성적처리실',             w:0.45,  c:C.office },
+      { n:'중앙현관',               w:0.90,  c:C.entry },   // ─ 연구실 열
+      { n:'행정실',                 w:1.45,  c:C.office },
+      { n:'교장실',                 w:1.20,  c:C.office },
+      { n:'법인실(학교운영위원회)',  w:1.20,  c:C.office },
+      { n:'Wee class',             w:1.25,  c:C.office },
+      { n:'계단',                   w:0.45,  c:C.stair },  // ─ 우측 계단
+      { n:'교육공동체실',            w:1.30,  c:C.office },
+      { n:'창고',                   w:0.60,  c:C.store },
+    ] },
+    { cells: [                                                   // 2층 · 3학년
+      { n:'화장실',                 w:0.50,  c:C.wc },
+      { n:'교직원휴게실(여)',        w:1.20,  c:C.office },
+      { n:'계단',                   w:0.45,  c:C.stair },
+      { n:'3-1', w:0.975, c:C.g3 }, { n:'3-2', w:0.975, c:C.g3 },
+      { n:'3-3', w:0.975, c:C.g3 }, { n:'3-4', w:0.975, c:C.g3 },
+      { n:'진학전략기획부·학사운영부', w:0.90, c:C.office },   // ─ 연구실 열
+      { n:'3학년연구실',             w:1.20,  c:C.lab },
+      { n:'3-5', w:1.30, c:C.g3 }, { n:'3-6', w:1.30, c:C.g3 },
+      { n:'3-7', w:1.30, c:C.g3 },
+      { n:'계단',                   w:0.45,  c:C.stair },  // ─ 우측 계단
+      { n:'3-8',                    w:1.30,  c:C.g3 },
+      { n:'화장실',                 w:0.60,  c:C.wc },
+    ] },
+    { cells: [                                                   // 3층 · 1학년
+      { n:'화장실',                 w:0.50,  c:C.wc },
+      { n:'1-1',                    w:1.20,  c:C.g1 },
+      { n:'계단',                   w:0.45,  c:C.stair },
+      { n:'1-2', w:0.975, c:C.g1 }, { n:'1-3', w:0.975, c:C.g1 },
+      { n:'1-4', w:0.975, c:C.g1 }, { n:'1-5', w:0.975, c:C.g1 },
+      { n:'1학년연구실',             w:0.90,  c:C.lab },    // ─ 연구실 열
+      { n:'학습카페',                w:1.60,  c:C.special },
+      { n:'1-6', w:1.75, c:C.g1 }, { n:'1-7', w:1.75, c:C.g1 },
+      { n:'계단',                   w:0.45,  c:C.stair },  // ─ 우측 계단
+      { n:'1-8',                    w:1.30,  c:C.g1 },
+      { n:'화장실',                 w:0.60,  c:C.wc },
+    ] },
+    { cells: [                                                   // 4층 · 2학년
+      { n:'화장실',                 w:0.50,  c:C.wc },
+      { n:'2-1',                    w:1.20,  c:C.g2 },
+      { n:'계단',                   w:0.45,  c:C.stair },
+      { n:'2-2', w:0.975, c:C.g2 }, { n:'2-3', w:0.975, c:C.g2 },
+      { n:'2-4', w:0.975, c:C.g2 }, { n:'2-5', w:0.975, c:C.g2 },
+      { n:'2학년연구실',             w:0.90,  c:C.lab },    // ─ 연구실 열
+      { n:'꿈다락',                  w:1.60,  c:C.special },
+      { n:'2-6', w:1.75, c:C.g2 }, { n:'2-7', w:1.75, c:C.g2 },
+      { n:'계단',                   w:0.45,  c:C.stair },  // ─ 우측 계단
+      { n:'2-8',                    w:1.30,  c:C.g2 },
+      { n:'화장실',                 w:0.60,  c:C.wc },
+    ] },
+  ],
+});
+
+/* 본관 북쪽으로 튀어나온 부속동 — 화장실·숙직실·계단·승강기 (1층) */
+annex({
+  at: [11.5, 4 - 7 / 2 - 1.4], axis: 'x', len: 20, depth: 2.8, floor: 0,
+  labelFace: -1,                            // 북쪽 면이므로 라벨도 북쪽으로
+  attachTo: 'main', bldg: '1. 본관',
+  cells: [
+    { n:'화장실(남)', w:1.0, c:C.wc },
+    { n:'숙직실',     w:0.8, c:C.office },
+    { n:'계단',       w:0.6, c:C.stair },
+    { n:'화장실(여)', w:1.0, c:C.wc },
+    { n:'ELEV.',      w:0.7, c:C.elev },
+  ],
+});
+
+/* ══════════════════════════════════════════════════════════════════
+   2. 별관  — 4개 층, 남북 방향.  요청대로 모든 층의 양쪽 끝에 계단 배치.
+   가중치를 정규화하므로 계단이 늘어도 건물 전체 크기는 그대로 유지된다.
+   ══════════════════════════════════════════════════════════════════ */
+makeBuilding({
+  key: 'annex', name: '2. 별관', at: [-48, 12], axis: 'z', len: 34, depth: 9,
+  floors: [
+    { cells: [                                                   // 1층 · 과학
+      { n:'계단',         w:0.6, c:C.stair },
+      { n:'과학교실2',    w:2.4, c:C.special },
+      { n:'과학준비실',   w:1.6, c:C.special },
+      { n:'과학교실1',    w:2.4, c:C.special },
+      { n:'현관',         w:1.4, c:C.entry },
+      { n:'계단',         w:0.6, c:C.stair },
+    ] },
+    { cells: [                                                   // 2층 · 음악·정보
+      { n:'계단',         w:0.6, c:C.stair },
+      { n:'음악준비실',   w:1.6, c:C.special },
+      { n:'음악실',       w:2.6, c:C.special },
+      { n:'컴퓨터실',     w:2.6, c:C.special },
+      { n:'정보교과준비실', w:2.4, c:C.special },
+      { n:'계단',         w:0.6, c:C.stair },
+    ] },
+    { cells: [                                                   // 3층 · 미술·진로
+      { n:'계단',            w:0.6, c:C.stair },
+      { n:'미술실',          w:2.6, c:C.special },
+      { n:'미술준비실',      w:1.6, c:C.special },
+      { n:'진로활동실',      w:2.4, c:C.special },
+      { n:'교육과정운영지원실', w:2.4, c:C.office },
+      { n:'계단',            w:0.6, c:C.stair },
+    ] },
+    { cells: [                                                   // 4층 · 공용·자치
+      { n:'계단',              w:0.6, c:C.stair },
+      { n:'공용교실2',         w:2.6, c:C.special },
+      { n:'공용교실1',         w:2.6, c:C.special },
+      { n:'대원루트(학생자치실)', w:2.4, c:C.special },
+      { n:'생활안전부',        w:1.8, c:C.office },
+      { n:'계단',              w:0.6, c:C.stair },
+    ] },
+  ],
+});
+
+/* 별관 서쪽으로 튀어나온 화장실 — 세 개 층 모두 같은 z 위치에 맞춤 */
+[
+  { floor: 0, n: '화장실(남)' },   // 1층 (신규 추가)
+  { floor: 1, n: '화장실(남)' },   // 2층
+  { floor: 2, n: '화장실(여)' },   // 3층
+].forEach(({ floor, n }) => {
+  annex({
+    at: [-48 - 9 / 2 - 1.5, 20], axis: 'z', len: 4.5, depth: 3, floor,
+    labelFace: -1,                          // 서쪽 면이므로 라벨도 서쪽으로
+    attachTo: 'annex', bldg: '2. 별관',
+    cells: [ { n, w: 1, c: C.wc } ],
+  });
+});
+
+/* ══════════════════════════════════════════════════════════════════
+   3. 후관  — 3개 층 (1층 급식 / 2·3층 기숙사).
+   3층은 기숙사 부분만 있으므로 부분 층(span)으로 처리.
+   ══════════════════════════════════════════════════════════════════ */
+makeBuilding({
+  key: 'rear', name: '3. 후관', at: [17, -20], axis: 'x', len: 50, depth: 8,
+  floors: [
+    { cells: [                                                   // 1층 · 급식
+      { n:'식생활교육실',     w:0.9, c:C.special },
+      { n:'급식실(조리실)',   w:2.2, c:C.food },
+      { n:'급식실(학생식당)', w:5.0, c:C.food },
+      { n:'계단',            w:0.5, c:C.stair },
+      { n:'화장실',          w:0.5, c:C.wc },
+    ] },
+    { cells: [                                                   // 2층 · 기숙사·정독실
+      { n:'기숙사 2층(7실)', w:3.5, c:C.dorm },
+      { n:'정독실3',         w:1.2, c:C.study },
+      { n:'정독실2',         w:1.2, c:C.study },
+      { n:'정독실1',         w:1.2, c:C.study },
+      { n:'상담실',          w:1.0, c:C.study },   // 1층과 누적폭(8.1)을 맞춰 계단 정렬
+      { n:'계단',            w:0.5, c:C.stair },
+      { n:'화장실',          w:0.5, c:C.wc },
+    ] },
+    { span: 3.5 / 9, align: 'start', cells: [                    // 3층 · 기숙사만
+      { n:'기숙사 3층(7실)', w:1, c:C.dorm },
+    ] },
+  ],
+});
+
+/* ══════════════════════════════════════════════════════════════════
+   4. 도서관 / 창고
+   ══════════════════════════════════════════════════════════════════ */
+makeBuilding({
+  key: 'lib', name: '4. 도서관', at: [16, -38], axis: 'x', len: 21, depth: 6,
+  floors: [
+    { cells: [
+      { n:'기자재보관실', w:1.0, c:C.store },
+      { n:'창의융합실',   w:2.4, c:C.special },
+      { n:'문서고',       w:0.9, c:C.store },
+    ] },
+    { cells: [ { n:'도서관', w:1, c:C.library } ] },
+  ],
+});
+makeBuilding({
+  key: 'store', at: [31, -38], axis: 'x', len: 8, depth: 6, name: '창고', labelY: 6,
+  floors: [ { cells: [ { n:'창고', w:1, c:C.store } ] } ],
+});
+
+/* ══════════════════════════════════════════════════════════════════
+   5. 담곡관  — 단층, 두 개의 베이로 이루어진 사각 블록.
+   지도에서 이 건물은 다른 건물과 달리 한 줄이 아니라,
+     · 서쪽 좁은 열(폭 31%) : 예체능교육실 / 화장실(여) / 현관 / 화장실 / 악기실
+     · 동쪽 넓은 홀(폭 69%) : 담곡관 본체 (전체 깊이를 관통)
+   이 두 베이가 하나의 외곽선 안에 나란히 붙어 있는 형태다.
+   ══════════════════════════════════════════════════════════════════ */
+{
+  const DG = { x: 52, z: 26, w: 12, d: 15, westFrac: 0.31 };
+  const wWest = DG.w * DG.westFrac;
+  const wEast = DG.w - wWest;
+
+  // 서쪽 부속실 열 — 위(북)에서 아래(남) 순서가 지도와 동일
+  makeBuilding({
+    key: 'dgW', navName: '5. 담곡관', at: [DG.x - DG.w / 2 + wWest / 2, DG.z], axis: 'z',
+    len: DG.d, depth: wWest, labelFace: -1,
+    floors: [ { cells: [
+      { n:'예체능교육실', w:4.20, c:C.dgRoom },
+      { n:'화장실(여)',   w:1.15, c:C.dgWcF },
+      { n:'현관',         w:1.07, c:C.dgWhite },
+      { n:'화장실',       w:1.07, c:C.dgWc },
+      { n:'악기실',       w:2.26, c:C.dgWhite },
+    ] } ],
+  });
+
+  // 동쪽 홀 — 건물 깊이를 통째로 쓰는 단일 공간
+  makeBuilding({
+    key: 'dgE', name: '5. 담곡관', at: [DG.x + DG.w / 2 - wEast / 2, DG.z], axis: 'z',
+    len: DG.d, depth: wEast, labelY: FLOOR_H + 3.2,
+    floors: [ { cells: [ { n:'담곡관', w:1, c:C.dgHall } ] } ],
+  });
+
+  focusTargets['5. 담곡관'] = new THREE.Vector3(DG.x, FLOOR_H / 2, DG.z);
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   6. 문화관 (체육관)  — 단층이지만 층고가 높은 단일 볼륨
+   ══════════════════════════════════════════════════════════════════ */
+{
+  const gym = makeBuilding({
+    key: 'gym', name: '6. 문화관 (체육관)', at: [-21, 33], axis: 'x', len: 22, depth: 11,
+    labelY: 5.6,                           // group is scaled 2.3x in Y below
+    floors: [ { cells: [
+      { n:'화장실',        w:0.7, c:C.wc },
+      { n:'문화관(체육관)', w:5.0, c:C.gym },
+    ] } ],
+  });
+  gym.scale.y = 2.3;                       // 2개 층 높이의 단일 공간
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   연결 통로
+   ══════════════════════════════════════════════════════════════════ */
+// 연결복도(3층) : 별관 ↔ 본관.
+// 별관 동쪽 면(x=-43.5)과 본관 서쪽 면(x=-30) 사이를 정확히 채우고,
+// 깊이·층높이는 본관과 동일하게 맞춰 두 건물이 어긋나 보이지 않게 한다.
+bridge({ at: [-36.75, 4], w: 13.5, d: 7, floor: 2, name: '연결복도(3층)' });
+
+// 아고라(2.5층) : 본관 ↔ 후관 — 2층과 3층 사이에 걸친 중간층.
+// 지도에서 아고라는 급식실(조리실)과 급식실(학생식당)의 경계에 붙어 있으므로,
+// 식당 서쪽 끝(x≈9)에 맞춰 두어야 급식실로 바로 이어진다.
+bridge({ at: [11, -8], w: 6, d: 16, floor: 1.5, color: C.agora, name: '아고라(2.5층)' });
+
+// 연결복도(3층) : 후관 2층 ↔ 본관 3층 — 층 높이가 달라 경사 브리지
+ramp({
+  x: 39, w: 5,
+  from: [-16, FLOOR_H * 1.5],   // 후관 2층 중심
+  to:   [0.5, FLOOR_H * 2.5],   // 본관 3층 중심
+  name: '연결복도(3층)',
+});
+
+/* ══════════════════════════════════════════════════════════════════
+   부지 시설
+   ══════════════════════════════════════════════════════════════════ */
+pad({ at: [9, 22], w: 76, d: 13, color: 0xc08a55, name: '운 동 장' });
+pad({ at: [9, 15.5], w: 8, d: 2.4, color: 0x9a9a95, name: '조회대', y: 0.07 });
+pad({ at: [11, 33], w: 28, d: 5, color: 0x59677d, name: '농구코트' });
+
+pad({ at: [46, -20], w: 16, d: 18, color: 0x9a9a9a, name: '주차장' });
+pad({ at: [26, -24], w: 22, d: 4, color: 0x9a9a9a, name: '주차장' });
+pad({ at: [23, -11], w: 26, d: 4, color: 0x9a9a9a, name: '주차장' });
+pad({ at: [44, 40], w: 22, d: 4, color: 0x9a9a9a, name: '주차장' });
+pad({ at: [30, 39], w: 7, d: 3, color: 0xf2f2ee, name: '정문', y: 0.08 });
+pad({ at: [-25, -21], w: 6, d: 2.5, color: 0xf2f2ee, name: '급수대', y: 0.08 });
+pad({ at: [27, -12.5], w: 6, d: 2.5, color: 0xf2f2ee, name: '급수대', y: 0.08 });
+
+// 연못 / 후문 (지도 좌상단의 청록색 사면)
+{
+  const s = new THREE.Shape();
+  [[-52,-42],[0,-44],[-16,-33],[-40,-27],[-47,-24],[-52,-20]]
+    .forEach(([x, z], i) => i ? s.lineTo(x, z) : s.moveTo(x, z));
+  s.closePath();
+  const m = new THREE.Mesh(
+    new THREE.ShapeGeometry(s),
+    new THREE.MeshStandardMaterial({ color: 0x54a9c2, roughness: 0.25, metalness: 0.1 })
+  );
+  m.rotation.x = Math.PI / 2;             // ShapeGeometry lies in XY → rotate into XZ
+  m.position.y = 0.06;
+  scene.add(m);
+  siteObjects.push(m);
+  const t = makeLabel('후문', 'site');
+  t.position.set(-40, 1, -28);
+  scene.add(t);
+  siteObjects.push(t);
+}
+
+// 방위 표시
+{ const t = makeLabel('▲ N', 'site'); t.position.set(-60, 2, -46); scene.add(t); siteObjects.push(t); }
+
+/* ══════════════════════════════════════════════════════════════════
+   NAVIGATION GRAPH
+   교실 노드는 makeBuilding/annex 가 이미 모아 두었고, 여기서 통로를 잇는다.
+     · 같은 층 같은 건물   → 복도 순서대로 이웃끼리 연결
+     · 계단 / 승강기       → 위·아래 층의 같은 계단칸끼리 수직 연결
+     · 연결복도 · 아고라   → 건물 간 수동 연결
+     · 야외 보행로         → 건물 출입구를 잇는 별도 노드망
+   ══════════════════════════════════════════════════════════════════ */
+const OUT_Y = 1.6;
+const OUTDOOR = [
+  ['out-field',  '운동장',     9,   22],
+  ['out-main-s', '본관 앞',    9,   12],
+  ['out-main-w', '본관 서측', -30,  12],
+  ['out-main-e', '본관 동측',  50,  12],
+  ['out-annex',  '별관 앞',   -48,  32],
+  ['out-gym',    '문화관 앞', -21,  25],
+  ['out-court',  '농구코트',   11,  33],
+  ['out-gate',   '정문',       30,  39],
+  ['out-dg',     '담곡관 앞',  45,  26],
+  ['out-rear-w', '후관 서측',  -9, -20],
+  ['out-rear-n', '후관 북측',  17, -28],
+  ['out-rear-e', '후관 동측',  45, -20],
+  ['out-lib',    '도서관 앞',  16, -33],
+  ['out-back',   '후문',      -40, -28],
+];
+const OUT_LINKS = [
+  ['out-field','out-main-s'], ['out-field','out-court'], ['out-field','out-gym'],
+  ['out-field','out-gate'],   ['out-court','out-gym'],   ['out-court','out-gate'],
+  ['out-main-s','out-main-w'],['out-main-s','out-main-e'],['out-main-e','out-dg'],
+  ['out-gate','out-dg'],      ['out-main-w','out-annex'], ['out-annex','out-gym'],
+  ['out-main-w','out-rear-w'],['out-rear-w','out-rear-n'],['out-rear-n','out-rear-e'],
+  ['out-rear-e','out-main-e'],['out-rear-n','out-lib'],   ['out-rear-w','out-back'],
+];
+
+const nodes = new Map();     // id -> node
+const adj   = new Map();     // id -> [{to, w}]
+
+navCells.forEach(c => nodes.set(c.id, c));
+OUTDOOR.forEach(([id, label, x, z]) => nodes.set(id,
+  { id, room: label, bldg: '야외', floor: 0, kind: 'outdoor',
+    pos: new THREE.Vector3(x, OUT_Y, z) }));
+
+/* 기숙사는 생활 공간이라 지나다니는 통로가 아니다. 노드를 지우면 기숙사 자체를
+   목적지로 고를 수 없으므로, 대신 인접 간선에 큰 가중치를 매겨 "그곳이 출발지나
+   도착지일 때만" 경로에 포함되도록 한다. */
+const RESTRICTED_COST = 30;
+navCells.forEach(c => { if (c.room.includes('기숙사')) c.restricted = true; });
+
+function link(a, b, mult = 1) {
+  const A = nodes.get(a), B = nodes.get(b);
+  if (!A || !B || a === b) return;
+  if (A.restricted || B.restricted) mult *= RESTRICTED_COST;
+  const w = A.pos.distanceTo(B.pos) * mult;
+  if (!adj.has(a)) adj.set(a, []);
+  if (!adj.has(b)) adj.set(b, []);
+  adj.get(a).push({ to: b, w });
+  adj.get(b).push({ to: a, w });
+}
+
+// ── 1. 같은 층 복도: along 순서로 이웃끼리 사슬 연결
+const bars = new Map();
+navCells.filter(c => !c.attached).forEach(c => {
+  const k = `${c.key}#${c.floor}`;
+  if (!bars.has(k)) bars.set(k, []);
+  bars.get(k).push(c);
+});
+bars.forEach(list => {
+  list.sort((a, b) => a.along - b.along);
+  for (let i = 1; i < list.length; i++) link(list[i - 1].id, list[i].id);
+});
+
+// ── 2. 돌출 부속실: 같은 건물·같은 층에서 가장 가까운 칸에 붙인다
+navCells.filter(c => c.attached).forEach(c => {
+  let best = null, bestD = Infinity;
+  bars.get(`${c.key}#${c.floor}`)?.forEach(o => {
+    const d = c.pos.distanceTo(o.pos);
+    if (d < bestD) { bestD = d; best = o; }
+  });
+  if (best) link(c.id, best.id);
+});
+
+// ── 3. 계단·승강기: 위아래 층의 같은 위치끼리 (수직 이동은 가중치 2.4배)
+navCells.filter(c => c.kind === 'stair' || c.kind === 'elev').forEach(c => {
+  bars.get(`${c.key}#${c.floor + 1}`)?.forEach(o => {
+    if (o.kind === c.kind && Math.abs(o.along - c.along) < 2.5) link(c.id, o.id, 2.4);
+  });
+});
+
+function nearestCell(key, floor, x, z) {
+  let best = null, bestD = Infinity;
+  (bars.get(`${key}#${floor}`) ?? []).forEach(c => {
+    const d = (c.pos.x - x) ** 2 + (c.pos.z - z) ** 2;
+    if (d < bestD) { bestD = d; best = c; }
+  });
+  return best;
+}
+const linkedTo = (cell, key, floor) => (adj.get(cell.id) ?? []).some(e => {
+  const o = nodes.get(e.to);
+  return o && o.key === key && o.floor === floor;
+});
+
+// ── 3b. 지도에 계단이 표기되지 않은 건물(도서관, 후관 3층 기숙사 등)은
+//        위아래 층에서 가장 가까운 칸끼리 이어 내부 계단으로 간주한다.
+[...bars.keys()].forEach(k => {
+  const key = k.slice(0, k.lastIndexOf('#'));
+  const floor = +k.slice(k.lastIndexOf('#') + 1);
+  if (floor === 0) return;
+  const upper = bars.get(k), lower = bars.get(`${key}#${floor - 1}`);
+  if (!lower || upper.some(c => linkedTo(c, key, floor - 1))) return;
+
+  let a = null, b = null, bestD = Infinity;
+  upper.forEach(u => lower.forEach(l => {
+    const d = Math.hypot(u.pos.x - l.pos.x, u.pos.z - l.pos.z);
+    if (d < bestD) { bestD = d; a = u; b = l; }
+  }));
+  if (a) link(a.id, b.id, 2.4);
+});
+
+// ── 4. 건물 사이 연결 통로 (연결복도 · 아고라)
+[
+  // [건물A, 층, x, z] ↔ [건물B, 층, x, z]   — 3D 상의 브리지 위치 기준
+  [['annex', 2, -43.5, 4], ['main', 2, -30, 4]],  // 연결복도(3층)
+  // 아고라는 후관 1층 급식실로 내려선다. (2층으로 이으면 바로 기숙사에 닿는다)
+  [['main',  2, 11, 0.5], ['rear', 0, 11, -16]],
+  [['main',  2, 39, 0.5], ['rear', 1, 39, -16]],  // 연결복도(3층) → 후관 2층 계단
+].forEach(([a, b]) => {
+  const A = nearestCell(...a), B = nearestCell(...b);
+  if (A && B) link(A.id, B.id, 1.15);
+});
+
+// ── 4b. 한 건물을 여러 덩어리로 나눠 만든 곳은 내부에서 서로 이어 준다
+//        (담곡관은 서쪽 부속실 열과 동쪽 홀이 별도 블록이다)
+[
+  [['dgW', 0, 47.9, 26], ['dgE', 0, 53.9, 26]],
+].forEach(([a, b]) => {
+  const A = nearestCell(...a), B = nearestCell(...b);
+  if (A && B) link(A.id, B.id);
+});
+
+// ── 5. 야외 보행로 + 건물 출입구
+OUT_LINKS.forEach(([a, b]) => link(a, b));
+
+function nearestOutdoor(pos) {
+  let best = null, bestD = Infinity;
+  OUTDOOR.forEach(([id]) => {
+    const d = nodes.get(id).pos.distanceTo(pos);
+    if (d < bestD) { bestD = d; best = id; }
+  });
+  return { id: best, d: bestD };
+}
+navCells.forEach(c => {
+  if (c.floor !== 0) return;
+  // 현관은 언제나 출입구, 1층 계단은 건물 끝의 비상 출입구로 취급
+  if (c.kind !== 'entry' && c.kind !== 'stair') return;
+  const { id, d } = nearestOutdoor(c.pos);
+  if (d < 45) link(c.id, id, c.kind === 'entry' ? 1 : 1.4);
+});
+
+// ── 5b. 현관도 계단도 표기되지 않은 건물(도서관·창고·문화관 등)이 고립되지
+//        않도록, 야외에 가장 가까운 1층 칸 하나를 출입구로 삼는다.
+const outdoorIds = new Set(OUTDOOR.map(([id]) => id));
+new Set(navCells.filter(c => c.floor === 0).map(c => c.key)).forEach(key => {
+  const cells = bars.get(`${key}#0`) ?? [];
+  const hasDoor = cells.some(c =>
+    (adj.get(c.id) ?? []).some(e => outdoorIds.has(e.to)));
+  if (hasDoor) return;
+
+  let best = null, bestOut = null, bestD = Infinity;
+  cells.forEach(c => {
+    const { id, d } = nearestOutdoor(c.pos);
+    if (d < bestD) { bestD = d; best = c; bestOut = id; }
+  });
+  if (best) link(best.id, bestOut, 1.2);
+});
+
+/* ── Dijkstra ─────────────────────────────────────────────────── */
+function findPath(startId, goalId) {
+  const dist = new Map([[startId, 0]]);
+  const prev = new Map();
+  const done = new Set();
+  const queue = [[0, startId]];
+
+  while (queue.length) {
+    queue.sort((a, b) => a[0] - b[0]);
+    const [d, id] = queue.shift();
+    if (done.has(id)) continue;
+    done.add(id);
+    if (id === goalId) break;
+    for (const { to, w } of adj.get(id) ?? []) {
+      if (done.has(to)) continue;
+      const nd = d + w;
+      if (nd < (dist.get(to) ?? Infinity)) {
+        dist.set(to, nd); prev.set(to, id); queue.push([nd, to]);
+      }
+    }
+  }
+  if (!done.has(goalId)) return null;
+
+  const ids = [goalId];
+  while (prev.has(ids[0])) ids.unshift(prev.get(ids[0]));
+  const path = ids.map(id => nodes.get(id));
+
+  // 계단·제한구역 가중치가 섞인 탐색 비용 대신 실제 이동 거리를 보고한다
+  let length = 0;
+  for (let i = 1; i < path.length; i++) length += path[i - 1].pos.distanceTo(path[i].pos);
+  return { path, length, cost: dist.get(goalId) };
+}
+
+/* ── 경로 렌더링 ──────────────────────────────────────────────── */
+const routeGroup = new THREE.Group();
+scene.add(routeGroup);
+
+/* 경로는 방 상자 "안쪽"을 지나므로 그냥 그리면 건물에 완전히 가려진다.
+   depthTest 를 꺼서 언제나 건물 위에 겹쳐 그리고, 동시에 건물을 반투명으로
+   바꿔(투시 모드) 경로가 어느 층을 지나는지 눈으로 따라갈 수 있게 한다. */
+function routeMaterial(color) {
+  return new THREE.MeshBasicMaterial({
+    color, depthTest: false, depthWrite: false, transparent: true, opacity: 0.98,
+  });
+}
+
+function setXray(on) {
+  scene.traverse(o => {
+    const m = o.material;
+    if (!o.isMesh || !m || o.userData.isRoute || o.userData.noXray) return;
+    if (on) {
+      if (m.userData.baseOpacity === undefined) m.userData.baseOpacity = m.opacity;
+      m.transparent = true;
+      m.opacity = 0.26;
+      m.depthWrite = false;
+    } else if (m.userData.baseOpacity !== undefined) {
+      m.opacity = m.userData.baseOpacity;
+      m.transparent = m.opacity < 1;
+      m.depthWrite = true;
+    }
+  });
+}
+
+function clearRoute() {
+  routeGroup.traverse(o => {
+    o.geometry?.dispose?.();
+    o.material?.dispose?.();
+  });
+  routeGroup.clear();
+  setXray(false);
+}
+
+function drawRoute(cells) {
+  clearRoute();
+  const pts = cells.map(c => c.pos.clone());
+  if (pts.length < 2) return;
+
+  const curve = new THREE.CatmullRomCurve3(pts, false, 'catmullrom', 0.25);
+
+  // 굵은 외곽선 + 밝은 심지 두 겹으로 그려 어떤 배경에서도 눈에 띄게 한다
+  [[0.95, 0x7a1408, 998], [0.6, 0xff5a2b, 999]].forEach(([r, col, order]) => {
+    const tube = new THREE.Mesh(
+      new THREE.TubeGeometry(curve, Math.max(64, pts.length * 10), r, 10, false),
+      routeMaterial(col)
+    );
+    tube.renderOrder = order;
+    tube.userData.isRoute = true;
+    routeGroup.add(tube);
+  });
+
+  // 각 경유 지점에 작은 구슬을 찍어 이동 방향을 읽기 쉽게 한다
+  pts.slice(1, -1).forEach(p => {
+    const bead = new THREE.Mesh(new THREE.SphereGeometry(0.85, 14, 10), routeMaterial(0xffd166));
+    bead.position.copy(p);
+    bead.renderOrder = 1000;
+    bead.userData.isRoute = true;
+    routeGroup.add(bead);
+  });
+
+  const marker = (p, color, text) => {
+    const m = new THREE.Mesh(new THREE.SphereGeometry(1.7, 20, 14), routeMaterial(color));
+    m.position.copy(p);
+    m.renderOrder = 1001;
+    m.userData.isRoute = true;
+    routeGroup.add(m);
+
+    // 지면까지 내려오는 기둥 — 경로가 몇 층에 있는지 한눈에 보이게
+    const drop = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.16, 0.16, p.y, 6), routeMaterial(color)
+    );
+    drop.position.set(p.x, p.y / 2, p.z);
+    drop.renderOrder = 997;
+    drop.userData.isRoute = true;
+    routeGroup.add(drop);
+
+    const t = makeLabel(text, 'bldg');
+    t.position.copy(p).add(new THREE.Vector3(0, 3.4, 0));
+    routeGroup.add(t);
+  };
+  marker(pts[0], 0x1e9e52, '출발');
+  marker(pts[pts.length - 1], 0xd92b2b, '도착');
+
+  if (document.getElementById('xray').checked) setXray(true);
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   UI
+   ══════════════════════════════════════════════════════════════════ */
+// 접기/펼치기 — 각 섹션 제목을 누르면 본문이 접힌다
+document.querySelectorAll('#ctrl .sec h2').forEach(h => {
+  h.onclick = () => h.parentElement.classList.toggle('collapsed');
+});
+
+const floorsOn = [true, true, true, true];
+const floorsBox = document.getElementById('floors');
+['1층', '2층', '3층', '4층'].forEach((name, i) => {
+  const b = document.createElement('button');
+  b.textContent = name;
+  b.onclick = () => {
+    floorsOn[i] = !floorsOn[i];
+    b.classList.toggle('off', !floorsOn[i]);
+    applyVisibility();
+  };
+  floorsBox.appendChild(b);
+});
+
+const focusBox = document.getElementById('focus');
+Object.keys(focusTargets).filter(k => k.includes('.')).forEach(name => {
+  const b = document.createElement('button');
+  b.textContent = name;
+  b.onclick = () => flyTo(focusTargets[name]);
+  focusBox.appendChild(b);
+});
+
+const showRooms = document.getElementById('showRooms');
+const showSite  = document.getElementById('showSite');
+showRooms.onchange = showSite.onchange = applyVisibility;
+
+// 경로가 떠 있는 동안에만 투시가 의미 있으므로 그때만 즉시 반영한다
+document.getElementById('xray').onchange = e => {
+  if (routeGroup.children.length) setXray(e.target.checked);
+};
+
+function applyVisibility() {
+  floorGroups.forEach((group, i) => {
+    group.forEach(o => {
+      const isLabel = o.isCSS2DObject || o instanceof CSS2DObject;
+      o.visible = floorsOn[i] && (!isLabel || showRooms.checked);
+    });
+  });
+  siteObjects.forEach(o => { o.visible = showSite.checked; });
+}
+applyVisibility();
+
+/* ── 길찾기 UI ────────────────────────────────────────────────── */
+// 사람이 읽는 이름 -> 노드 id.  같은 이름(화장실·계단 등)이 여러 개이므로
+// "건물 층 교실" 형태로 유일하게 만든다.
+const placeList = [];
+const placeIndex = new Map();
+nodes.forEach(n => {
+  if (n.kind === 'outdoor') {
+    place(n.room, n.id);
+  } else {
+    place(`${n.bldg} ${n.floor + 1}층 ${n.room}`, n.id);
+  }
+});
+function place(label, id) {
+  let unique = label, i = 2;
+  while (placeIndex.has(unique)) unique = `${label} (${i++})`;
+  placeIndex.set(unique, id);
+  placeList.push(unique);
+}
+placeList.sort((a, b) => a.localeCompare(b, 'ko'));
+document.getElementById('places').innerHTML =
+  placeList.map(p => `<option value="${p.replace(/"/g, '&quot;')}">`).join('');
+
+const fromIn = document.getElementById('fromIn');
+const toIn   = document.getElementById('toIn');
+const steps  = document.getElementById('steps');
+
+/* 사용자가 "3-1"처럼 짧게 쳐도 찾아준다: 정확 일치 → 부분 일치 순. */
+function resolve(text) {
+  const q = text.trim();
+  if (!q) return null;
+  if (placeIndex.has(q)) return placeIndex.get(q);
+  const lower = q.toLowerCase();
+  const hits = placeList.filter(p => p.toLowerCase().includes(lower));
+  if (!hits.length) return null;
+  // 교실 이름이 통째로 일치하는 것을 우선
+  const exact = hits.find(p => p.split(' ').pop().toLowerCase() === lower);
+  return placeIndex.get(exact ?? hits[0]);
+}
+
+document.getElementById('go').onclick = () => {
+  const a = resolve(fromIn.value), b = resolve(toIn.value);
+  steps.style.display = 'block';
+  if (!a || !b) {
+    steps.innerHTML = `<div class="warn">${!a ? '출발지' : '도착지'}를 찾을 수 없습니다. 목록에서 골라 주세요.</div>`;
+    clearRoute();
+    return;
+  }
+  if (a === b) {
+    steps.innerHTML = '<div class="warn">출발지와 도착지가 같습니다.</div>';
+    clearRoute();
+    return;
+  }
+  const res = findPath(a, b);
+  if (!res) {
+    steps.innerHTML = '<div class="warn">연결된 경로를 찾지 못했습니다.</div>';
+    clearRoute();
+    return;
+  }
+
+  drawRoute(res.path);
+  floorsOn.fill(true);                       // 경로가 층에 가려지지 않도록
+  [...floorsBox.children].forEach(b => b.classList.remove('off'));
+  applyVisibility();
+
+  // 같은 건물·같은 층이 이어지는 구간은 한 줄로 묶어 안내한다
+  const legs = [];
+  res.path.forEach(n => {
+    const where = n.kind === 'outdoor' ? '야외' : `${n.bldg} ${n.floor + 1}층`;
+    const last = legs[legs.length - 1];
+    if (last && last.where === where) last.rooms.push(n.room);
+    else legs.push({ where, rooms: [n.room] });
+  });
+
+  steps.innerHTML =
+    `<div class="sum">총 이동거리 약 ${Math.round(res.length)} m · ${legs.length}개 구간</div><ol>` +
+    legs.map(l => {
+      const via = l.rooms.length > 2
+        ? `${l.rooms[0]} → … → ${l.rooms[l.rooms.length - 1]}`
+        : l.rooms.join(' → ');
+      return `<li><b>${l.where}</b><br>${via}</li>`;
+    }).join('') + '</ol>';
+
+  // 경로 전체가 보이도록 카메라를 맞춘다
+  const box = new THREE.Box3().setFromPoints(res.path.map(n => n.pos));
+  const c = box.getCenter(new THREE.Vector3());
+  const r = Math.max(box.getSize(new THREE.Vector3()).length(), 30);
+  fly = { t: 0, fromT: controls.target.clone(), toT: c,
+          fromC: camera.position.clone(),
+          toC: c.clone().add(new THREE.Vector3(0, r * 0.75, r * 0.95)) };
+};
+
+document.getElementById('clear').onclick = () => {
+  clearRoute();
+  steps.style.display = 'none';
+  fromIn.value = toIn.value = '';
+};
+document.getElementById('swap').onclick = () => {
+  [fromIn.value, toIn.value] = [toIn.value, fromIn.value];
+};
+[fromIn, toIn].forEach(el => el.addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('go').click();
+}));
+
+let fly = null;
+function flyTo(target) {
+  const offset = new THREE.Vector3(0, 34, 52);
+  fly = { t: 0, fromT: controls.target.clone(), toT: target.clone(),
+          fromC: camera.position.clone(), toC: target.clone().add(offset) };
+}
+
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+  labelRenderer.setSize(innerWidth, innerHeight);
+});
+
+/* ══════════════════════════════════════════════════════════════════
+   LOOP
+   ══════════════════════════════════════════════════════════════════ */
+function tick() {
+  requestAnimationFrame(tick);
+
+  if (fly) {
+    fly.t = Math.min(1, fly.t + 0.04);
+    const e = 1 - Math.pow(1 - fly.t, 3);            // ease-out cubic
+    controls.target.lerpVectors(fly.fromT, fly.toT, e);
+    camera.position.lerpVectors(fly.fromC, fly.toC, e);
+    if (fly.t >= 1) fly = null;
+  }
+
+  // fade room captions out when the camera pulls back, so the overview stays clean
+  const dist = camera.position.distanceTo(controls.target);
+  const opacity = dist > 190 ? 0 : dist > 120 ? (190 - dist) / 70 : 1;
+  roomLabels.forEach(l => { l.element.style.opacity = opacity; });
+
+  controls.update();
+  renderer.render(scene, camera);
+  labelRenderer.render(scene, camera);
+}
+tick();
+</script>
+</body>
+</html>
