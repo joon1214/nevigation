@@ -173,6 +173,8 @@
       </div>
       <datalist id="places"></datalist>
 
+      <label class="opt"><span>계단 없는 경로 (엘리베이터)</span>
+        <input type="checkbox" id="stepFree"><span class="sw"></span></label>
       <label class="opt"><span>기숙사 경유 허용</span>
         <input type="checkbox" id="viaDorm"><span class="sw"></span></label>
 
@@ -298,7 +300,8 @@ const C = {
   wc:      TONE.wc,    stair:   TONE.stair, elev:    TONE.elev,
   entry:   TONE.corr,  food:    TONE.room,  dorm:    TONE.room,
   study:   TONE.room,  library: TONE.room,  store:   TONE.corr,
-  gym:     TONE.room,  corr:    TONE.corr,  agora:   TONE.corr,
+  gym:     TONE.room,  corr:    TONE.corr,
+  agora:   TONE.room,  // 아고라는 통로이면서 교실이므로 교실 색을 쓴다
   // 담곡관 — 원본 지도에서만 다른 색조였던 칸들도 같은 규칙으로 흡수한다
   dgHall:  TONE.room,  dgRoom:  TONE.room,  dgWcF:   TONE.wc,
   dgWc:    TONE.wc,    dgWhite: TONE.corr,
@@ -465,7 +468,7 @@ function bridge({ at: [x, z], w, d, floor, storeys = 1, color = C.corr, name, la
   const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), surface(color));
   mesh.position.set(x, yBase + h / 2, z);
   scene.add(mesh);
-  reg(mesh, 'mesh', 'link', floor, 1, color);
+  partOf.set(mesh, reg(mesh, 'mesh', 'link', floor, 1, color));
   const edge = new THREE.LineSegments(
     new THREE.EdgesGeometry(mesh.geometry),
     new THREE.LineBasicMaterial({ color: EDGE, transparent: true, opacity: EDGE_OP })
@@ -489,7 +492,7 @@ function ramp({ x, w, from: [z1, y1], to: [z2, y2], thick = 2.3, color = C.corr,
   mesh.rotation.x = -Math.atan2(dy, dz);
   mesh.position.set(x, (y1 + y2) / 2, (z1 + z2) / 2);
   scene.add(mesh);
-  reg(mesh, 'mesh', 'link', 2, 1, color);
+  partOf.set(mesh, reg(mesh, 'mesh', 'link', 2, 1, color));
   const o = new THREE.LineSegments(new THREE.EdgesGeometry(mesh.geometry),
     new THREE.LineBasicMaterial({ color: EDGE, transparent: true, opacity: EDGE_OP }));
   o.position.copy(mesh.position); o.rotation.copy(mesh.rotation);
@@ -887,7 +890,10 @@ makeBuilding({
    연결 통로
    통로 자체도 길찾기에서 고를 수 있는 장소이므로, 형상과 그래프가 어긋나지
    않도록 여기 한 곳에서 정의하고 아래 NAVIGATION 절이 그대로 읽어 쓴다.
-   ends: [건물키, 층, x, z] — 그 지점에서 가장 가까운 칸에 통로를 붙인다.
+
+   ends: 통로가 닿는 칸. { key, floor, at:[x,z] } 지점에서 가장 가까운 칸에 붙되,
+   kind/room 을 적으면 그 조건을 만족하는 칸 중에서만 고른다 — "그 층 아무 칸"이
+   아니라 계단·기숙사처럼 정해진 칸에 닿아야 하는 통로가 있기 때문이다.
    ══════════════════════════════════════════════════════════════════ */
 const CONNECTORS = [
   {
@@ -895,34 +901,50 @@ const CONNECTORS = [
     // 별관 동쪽 면(x=-43.5)과 본관 서쪽 면(x=-30) 사이를 정확히 채우고,
     // 깊이·층높이는 본관과 동일하게 맞춰 두 건물이 어긋나 보이지 않게 한다.
     node: [-36.75, FLOOR_H * 2 + 2.1, 4],
-    ends: [['annex', 2, -43.5, 4], ['main', 2, -30, 4]],
+    ends: [{ key: 'annex', floor: 2, at: [-43.5, 4] },
+           { key: 'main',  floor: 2, at: [-30, 4] }],
   },
   {
     id: 'conn-agora', label: '아고라(2.5층)',
-    // 지도에서 아고라는 급식실(조리실)과 급식실(학생식당)의 경계에 붙어 있으므로,
-    // 식당 서쪽 끝(x≈9)에 맞춰 두어야 급식실로 바로 이어진다.
+    where: '교실 · 본관 2~3층 계단참 ↔ 후관 2층 기숙사',
+    /* 아고라는 교실이면서 통로다. 층과 층 사이(2.5층)에 걸쳐 있어서 본관 쪽은
+       어느 한 층의 복도가 아니라 2층과 3층을 잇는 계단의 중간참에 닿고,
+       후관 쪽은 2층 기숙사로 이어진다. 그래서 본관 끝은 층이 아니라 "계단"으로,
+       후관 끝은 "기숙사" 칸으로 지정한다. 아고라에서 가장 가까운 본관 계단은
+       중앙현관 위로 1~4층을 관통하는 중앙 계단탑이다. */
     node: [11, FLOOR_H * 1.5 + 2.1, -8],
-    ends: [['main', 2, 11, 0.5], ['rear', 0, 11, -16]],
+    // 본관 쪽은 중간참이므로 2층에서든 3층에서든 반 층을 오르내려야 닿는다.
+    // via:'stair' 로 적어 두어야 "계단 없는 경로"가 이 길을 평지로 착각하지 않는다.
+    ends: [{ key: 'main', floor: 1, at: [11, -8],  kind: 'stair', via: 'stair' },
+           { key: 'main', floor: 2, at: [11, -8],  kind: 'stair', via: 'stair' },
+           { key: 'rear', floor: 1, at: [11, -16], room: '기숙사' }],
   },
   {
     id: 'conn-main-rear', label: '연결복도(3층) · 본관–후관',
     node: [39, FLOOR_H * 2 + 2.1, -8],
-    ends: [['main', 2, 39, 0.5], ['rear', 1, 39, -16]],
+    ends: [{ key: 'main', floor: 2, at: [39, 0.5] },
+           { key: 'rear', floor: 1, at: [39, -16] }],
   },
 ];
 
-bridge({ at: [-36.75, 4], w: 13.5, d: 7, floor: 2, name: '연결복도(3층)' });
-// 아고라의 한가운데는 본관 뒤로 숨는다 — 이름표만 북쪽으로 빼 본관 이름표를 피한다
-bridge({ at: [11, -8], w: 6, d: 16, floor: 1.5, color: C.agora,
-         name: '아고라(2.5층)', labelZ: -6 });
+/* 통로 몸체를 통로 노드와 짝지어 둔다 — 아고라처럼 통로 자체가 목적지가 되는
+   곳을 클릭으로 고를 수 있어야 하기 때문이다. */
+const connectorMeshes = {
+  'conn-annex-main':
+    bridge({ at: [-36.75, 4], w: 13.5, d: 7, floor: 2, name: '연결복도(3층)' }),
 
-// 후관 2층 ↔ 본관 3층 — 층 높이가 달라 경사 브리지
-ramp({
-  x: 39, w: 5,
-  from: [-16, FLOOR_H * 1.5],   // 후관 2층 중심
-  to:   [0.5, FLOOR_H * 2.5],   // 본관 3층 중심
-  name: '연결복도(3층)',
-});
+  // 아고라의 한가운데는 본관 뒤로 숨는다 — 이름표만 북쪽으로 빼 본관 이름표를 피한다
+  'conn-agora':
+    bridge({ at: [11, -8], w: 6, d: 16, floor: 1.5, color: C.agora,
+             name: '아고라(2.5층)', labelZ: -6 }),
+
+  // 후관 2층 ↔ 본관 3층 — 층 높이가 달라 경사 브리지
+  'conn-main-rear':
+    ramp({ x: 39, w: 5,
+           from: [-16, FLOOR_H * 1.5],   // 후관 2층 중심
+           to:   [0.5, FLOOR_H * 2.5],   // 본관 3층 중심
+           name: '연결복도(3층)' }),
+};
 
 /* ══════════════════════════════════════════════════════════════════
    부지 시설
@@ -1006,14 +1028,14 @@ const OUT_LINKS = [
 ];
 
 const nodes = new Map();     // id -> node
-const adj   = new Map();     // id -> [{to, w}]
+const adj   = new Map();     // id -> [{to, w, via}]   via: 'stair' | 'elev' | null
 
 navCells.forEach(c => nodes.set(c.id, c));
 OUTDOOR.forEach(([id, label, x, z]) => nodes.set(id,
   { id, room: label, bldg: '야외', floor: 0, kind: 'outdoor',
     pos: new THREE.Vector3(x, OUT_Y, z) }));
 CONNECTORS.forEach(c => nodes.set(c.id,
-  { id: c.id, room: c.label, bldg: '연결통로', floor: 2, kind: 'connector',
+  { id: c.id, room: c.label, bldg: c.where ?? '연결통로', floor: 2, kind: 'connector',
     pos: new THREE.Vector3(...c.node) }));
 
 /* 기숙사는 생활 공간이라 지나다니는 통로가 아니다. 간선 자체는 그대로 두고
@@ -1023,14 +1045,18 @@ CONNECTORS.forEach(c => nodes.set(c.id,
 const RESTRICTED_COST = 30;
 navCells.forEach(c => { if (c.room.includes('기숙사')) c.restricted = true; });
 
-function link(a, b, mult = 1) {
+/* 층을 오르내리는 간선에는 그 수단(계단/승강기)을 적어 둔다. 노드의 종류로
+   판단하면 안 된다 — 복도를 걷다 계단 칸 "앞을" 지나가는 것과 계단을 실제로
+   오르내리는 것은 다르기 때문이다. 수단을 간선에 적어 두면 탐색할 때
+   "계단은 빼고" 또는 "승강기는 빼고" 를 정확히 고를 수 있다. */
+function link(a, b, mult = 1, via = null) {
   const A = nodes.get(a), B = nodes.get(b);
   if (!A || !B || a === b) return;
   const w = A.pos.distanceTo(B.pos) * mult;
   if (!adj.has(a)) adj.set(a, []);
   if (!adj.has(b)) adj.set(b, []);
-  adj.get(a).push({ to: b, w });
-  adj.get(b).push({ to: a, w });
+  adj.get(a).push({ to: b, w, via });
+  adj.get(b).push({ to: a, w, via });
 }
 
 // ── 1. 같은 층 복도: along 순서로 이웃끼리 사슬 연결
@@ -1060,7 +1086,8 @@ navCells.filter(c => c.attached).forEach(c => {
 navCells.filter(c => (c.kind === 'stair' || c.kind === 'elev') && c.along !== null)
   .forEach(c => {
     bars.get(`${c.key}#${c.floor + 1}`)?.forEach(o => {
-      if (o.kind === c.kind && Math.abs(o.along - c.along) < 2.5) link(c.id, o.id, 2.4);
+      if (o.kind === c.kind && Math.abs(o.along - c.along) < 2.5)
+        link(c.id, o.id, 2.4, c.kind);
     });
   });
 
@@ -1072,7 +1099,7 @@ annexCells.forEach(a => {
   annexCells.forEach(b => {
     if (b.floor !== a.floor + 1 || b.kind !== a.kind) return;
     if (Math.hypot(a.pos.x - b.pos.x, a.pos.z - b.pos.z) > 1.5) return;
-    link(a.id, b.id, 2.4);
+    link(a.id, b.id, 2.4, a.kind);
   });
 });
 
@@ -1103,15 +1130,28 @@ const linkedTo = (cell, key, floor) => (adj.get(cell.id) ?? []).some(e => {
     const d = Math.hypot(u.pos.x - l.pos.x, u.pos.z - l.pos.z);
     if (d < bestD) { bestD = d; a = u; b = l; }
   }));
-  if (a) link(a.id, b.id, 2.4);
+  if (a) link(a.id, b.id, 2.4, 'stair');
 });
 
 // ── 4. 건물 사이 연결 통로. 통로 노드를 사이에 두고 양끝 건물에 붙이므로
 //      "아고라까지 가는 길"도 따로 안내할 수 있다.
-//      (아고라는 후관 1층 급식실로 내려선다 — 2층으로 이으면 바로 기숙사에 닿는다)
+//      연결복도·경사로·아고라는 계단이 아니라 통로이므로 수단을 적지 않는다
+//      (적으면 계단 없는 경로에서 이 길들까지 피해 버린다).
+//      돌출 부속실(중앙 계단탑)도 후보이므로 bars 가 아니라 navCells 를 훑는다.
+function endCell({ key, floor, at: [x, z], kind, room }) {
+  let best = null, bestD = Infinity;
+  navCells.forEach(c => {
+    if (c.key !== key || c.floor !== floor) return;
+    if (kind && c.kind !== kind) return;
+    if (room && !c.room.includes(room)) return;
+    const d = (c.pos.x - x) ** 2 + (c.pos.z - z) ** 2;
+    if (d < bestD) { bestD = d; best = c; }
+  });
+  return best;
+}
 CONNECTORS.forEach(c => c.ends.forEach(end => {
-  const cell = nearestCell(...end);
-  if (cell) link(c.id, cell.id, 1.15);
+  const cell = endCell(end);
+  if (cell) link(c.id, cell.id, 1.15, end.via ?? null);
 }));
 
 // ── 4b. 한 건물을 여러 덩어리로 나눠 만든 곳은 내부에서 서로 이어 준다
@@ -1121,6 +1161,13 @@ CONNECTORS.forEach(c => c.ends.forEach(end => {
 ].forEach(([a, b]) => {
   const A = nearestCell(...a), B = nearestCell(...b);
   if (A && B) link(A.id, B.id);
+});
+
+// ── 4c. 통로 몸체를 통로 노드에 물려 클릭으로 고를 수 있게 한다.
+//        (아고라는 교실이자 통로라 "여기로 가자"의 대상이 된다)
+Object.entries(connectorMeshes).forEach(([id, mesh]) => {
+  mesh.userData.node = nodes.get(id);
+  pickables.push(mesh);
 });
 
 // ── 5. 야외 보행로 + 건물 출입구
@@ -1159,10 +1206,27 @@ new Set(navCells.filter(c => c.floor === 0).map(c => c.key)).forEach(key => {
   if (best) link(best.id, bestOut, 1.2);
 });
 
-/* ── Dijkstra ─────────────────────────────────────────────────── */
-/* opts.viaDorm === true 이면 기숙사 가중치를 빼고 순수 최단 경로를 구한다. */
+/* ── Dijkstra ─────────────────────────────────────────────────────
+   opts.viaDorm  === true → 기숙사 가중치를 빼고 순수 최단 경로를 구한다.
+   opts.stepFree === true → 계단 대신 승강기로 층을 오르내린다.
+
+   승강기는 평소 학생이 타고 다니는 것이 아니므로 기본값에서는 큰 비용을 물려
+   사실상 쓰지 않게 하고, "계단 없는 경로"를 켜면 반대로 계단에 그 비용을 옮긴다.
+   막지 않고 비싸게만 만드는 이유는 기숙사와 같다 — 승강기가 없는 건물(별관·후관
+   등)에서도 길이 끊기지 않아야 하고, 그때는 안내에 계단이 있다고 알려 주면 된다. */
+const AVOID_COST = 60;
+
 function findPath(startId, goalId, opts = {}) {
-  const dorm = opts.viaDorm ? 1 : RESTRICTED_COST;
+  const dorm  = opts.viaDorm ? 1 : RESTRICTED_COST;
+  const stair = opts.stepFree ? AVOID_COST : 1;
+  const elev  = opts.stepFree ? 1 : AVOID_COST;
+  const climbCost = v => v === 'stair' ? stair : v === 'elev' ? elev : 1;
+
+  /* 기숙사 가중치는 "지나다니지 마라"는 뜻이지 "가지 마라"가 아니다. 출발지나
+     도착지가 기숙사면 거기 닿는 간선까지 30배를 물게 되어, 정작 기숙사로 갈 때
+     엉뚱하게 먼 길을 고르게 된다. 그래서 양 끝점에 걸린 간선은 면제한다. */
+  const transit = id => nodes.get(id).restricted && id !== startId && id !== goalId;
+
   const dist = new Map([[startId, 0]]);
   const prev = new Map();
   const done = new Set();
@@ -1174,25 +1238,34 @@ function findPath(startId, goalId, opts = {}) {
     if (done.has(id)) continue;
     done.add(id);
     if (id === goalId) break;
-    for (const { to, w } of adj.get(id) ?? []) {
+    for (const { to, w, via } of adj.get(id) ?? []) {
       if (done.has(to)) continue;
-      const via = (nodes.get(id).restricted || nodes.get(to).restricted) ? dorm : 1;
-      const nd = d + w * via;
+      const restricted = (transit(id) || transit(to)) ? dorm : 1;
+      const nd = d + w * restricted * climbCost(via);
       if (nd < (dist.get(to) ?? Infinity)) {
-        dist.set(to, nd); prev.set(to, id); queue.push([nd, to]);
+        dist.set(to, nd); prev.set(to, { from: id, via }); queue.push([nd, to]);
       }
     }
   }
   if (!done.has(goalId)) return null;
 
   const ids = [goalId];
-  while (prev.has(ids[0])) ids.unshift(prev.get(ids[0]));
+  const climbs = [];                      // 실제로 쓴 층 이동 수단
+  while (prev.has(ids[0])) {
+    const step = prev.get(ids[0]);
+    if (step.via) climbs.push(step.via);
+    ids.unshift(step.from);
+  }
   const path = ids.map(id => nodes.get(id));
 
   // 계단·제한구역 가중치가 섞인 탐색 비용 대신 실제 이동 거리를 보고한다
   let length = 0;
   for (let i = 1; i < path.length; i++) length += path[i - 1].pos.distanceTo(path[i].pos);
-  return { path, length, cost: dist.get(goalId) };
+  return {
+    path, length, cost: dist.get(goalId),
+    usedStairs: climbs.includes('stair'),
+    usedElev:   climbs.includes('elev'),
+  };
 }
 
 /* ── 경로 렌더링 ──────────────────────────────────────────────── */
@@ -1385,7 +1458,10 @@ function showHint() {
     `<div class="nm"></div><div class="meta"></div>
      <div class="pa"><button data-t="from">출발지로</button><button data-t="to">도착지로</button></div>`;
   hint.querySelector('.nm').textContent = node.room;
-  hint.querySelector('.meta').textContent = `${node.bldg} · ${node.floor + 1}층`;
+  // 연결통로·야외는 층 개념이 없다 (아고라는 이름 안에 2.5층이 이미 들어 있다)
+  hint.querySelector('.meta').textContent =
+    (node.kind === 'connector' || node.kind === 'outdoor')
+      ? node.bldg : `${node.bldg} · ${node.floor + 1}층`;
   hint.querySelectorAll('button').forEach(b => b.onclick = () => {
     const label = labelOf.get(node.id);
     if (!label) return;
@@ -1465,8 +1541,9 @@ document.getElementById('go').onclick = () => {
     clearRoute();
     return;
   }
-  const viaDorm = document.getElementById('viaDorm').checked;
-  const res = findPath(a, b, { viaDorm });
+  const viaDorm  = document.getElementById('viaDorm').checked;
+  const stepFree = document.getElementById('stepFree').checked;
+  const res = findPath(a, b, { viaDorm, stepFree });
   if (!res) {
     steps.innerHTML = '<div class="warn">연결된 경로를 찾지 못했습니다.</div>';
     clearRoute();
@@ -1489,9 +1566,19 @@ document.getElementById('go').onclick = () => {
 
   const throughDorm = res.path.some(n => n.restricted) &&
                       !nodes.get(a).restricted && !nodes.get(b).restricted;
+
+  /* 계단 없는 경로를 요청했는데도 계단이 섞였다면, 그 구간에 승강기가 아예
+     없다는 뜻이다. 조용히 계단을 안내하면 헛걸음을 시키므로 반드시 알린다. */
+  const notes = [];
+  if (throughDorm) notes.push('이 경로는 기숙사를 지나갑니다.');
+  if (stepFree && res.usedStairs)
+    notes.push('이 구간에는 엘리베이터가 없어 계단을 지납니다. 도움이 필요할 수 있습니다.');
+  else if (stepFree && res.usedElev) notes.push('엘리베이터를 이용하는 경로입니다.');
+  else if (res.usedElev) notes.push('이 경로는 엘리베이터를 이용합니다.');
+
   steps.innerHTML =
     `<div class="sum">총 이동거리 약 ${Math.round(res.length)} m · ${legs.length}개 구간</div>` +
-    (throughDorm ? '<div class="note">이 경로는 기숙사를 지나갑니다.</div>' : '') +
+    notes.map(n => `<div class="note">${n}</div>`).join('') +
     '<ol>' +
     legs.map(l => {
       const via = l.rooms.length > 2
