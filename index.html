@@ -428,6 +428,7 @@ function makeBuilding(cfg) {
       root.add(cap);
       reg(cap, 'label', key, fi, 1);
       roomLabels.push(cap);
+      part.label = cap;                  // 이 칸을 고르면 이 이름표만 남긴다
 
       const node = key ? {
         id: `${key}#${fi}#${ci}`,
@@ -541,6 +542,7 @@ function annex({ at: [x, z], axis, len, depth, floor, cells, labelFace = 1,
     scene.add(cap);
     reg(cap, 'label', attachTo, floor, 1);
     roomLabels.push(cap);
+    part.label = cap;
 
     const node = attachTo ? {
       id: `${attachTo}-annex#${floor}#${ci}#${cell.n}`,
@@ -1404,8 +1406,11 @@ function refresh() {
   parts.forEach(p => {
     const lit = floorFocus === null || (p.key === 'main' && p.floor === floorFocus);
 
+    /* 한 칸을 고르면 그 이름표만 남긴다. 고른 칸의 이름표는 층 강조에서 흐려진
+       층에 있더라도 보여야 한다 — 무엇을 골랐는지가 안 보이면 소용이 없다. */
     if (p.type === 'label') {
-      p.o.visible = showRooms.checked && lit;
+      p.o.visible = showRooms.checked &&
+        (p.o === soloLabel || (!selected && lit));
       return;
     }
     let k = p.sel ? 1 : lit ? 1 : 0.13;
@@ -1425,7 +1430,7 @@ function refresh() {
 const hint = document.getElementById('hint');
 const raycaster = new THREE.Raycaster();
 const ptr = new THREE.Vector2();
-let selected = null, downAt = null, hoverAt = 0;
+let selected = null, soloLabel = null, downAt = null, hoverAt = 0;
 
 function pickAt(ev) {
   ptr.set(ev.clientX / innerWidth * 2 - 1, -(ev.clientY / innerHeight * 2 - 1));
@@ -1440,10 +1445,12 @@ function select(mesh) {
     prev.sel = false;
   }
   selected = mesh;
+  soloLabel = null;
   if (selected) {
     const p = partOf.get(selected);
     selected.material.color.setHex(TONE.sel);
     p.sel = true;
+    soloLabel = p.label ?? null;         // 통로처럼 이름표가 따로 없는 것도 있다
   }
   const here = selected?.userData.node?.bldg ?? '1. 본관';
   Object.entries(bldgLabels).forEach(([k, el]) => el.classList.toggle('on', k === here));
@@ -1639,9 +1646,13 @@ function tick() {
 
   // fade room captions out when the camera pulls back, so the overview stays clean
   // — 멀리서는 건물 이름표만 남아야 배치가 읽힌다
+  // 고른 칸의 이름표는 이 흐려짐에서 빼 준다 — 멀리서 골랐을 때 이름이 같이
+  // 사라져 버리면 무엇을 골랐는지 알 수 없다
   const dist = camera.position.distanceTo(controls.target);
   const opacity = dist > 116 ? 0 : dist > 74 ? (116 - dist) / 42 : 1;
-  roomLabels.forEach(l => { l.element.style.opacity = opacity; });
+  roomLabels.forEach(l => {
+    l.element.style.opacity = l === soloLabel ? 1 : opacity;
+  });
 
   controls.update();
   renderer.render(scene, camera);
